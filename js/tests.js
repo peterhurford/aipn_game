@@ -42,6 +42,7 @@ const TestRunner = {
         this.testRoutingRules();
         this.testConditionalDialogue();
         this.testSceneStructure();
+        this.testCharacterPayoff();
         this.testEndingPaths();
 
         console.log(`\n${'='.repeat(50)}`);
@@ -144,71 +145,53 @@ const TestRunner = {
     testRoutingRules() {
         console.log('\n--- Routing Rules Tests ---');
 
-        // Climax choice routing
+        // Climax choice routing - four distinct paths
         this.assertEqual(
             routeScene('climax_choice_check', { trustedElena: true, sharedWithPriya: true }),
-            'climax_choice',
-            'Both allies -> climax_choice'
+            'climax_both',
+            'Both allies -> climax_both (full negotiation)'
         );
         this.assertEqual(
             routeScene('climax_choice_check', { trustedElena: true, sharedWithPriya: false }),
-            'climax_no_leverage',
-            'Only Elena -> climax_no_leverage'
+            'climax_elena_only',
+            'Elena only -> climax_elena_only (understand but cant act)'
         );
         this.assertEqual(
             routeScene('climax_choice_check', { trustedElena: false, sharedWithPriya: true }),
-            'climax_no_leverage',
-            'Only Priya -> climax_no_leverage'
+            'climax_priya_only',
+            'Priya only -> climax_priya_only (can act but dont understand)'
         );
         this.assertEqual(
             routeScene('climax_choice_check', { trustedElena: false, sharedWithPriya: false }),
-            'climax_no_leverage',
-            'No allies -> climax_no_leverage'
+            'climax_neither',
+            'No allies -> climax_neither (irrelevant)'
         );
 
-        // Ending routing - Both allies + supported
+        // Ending routing - five distinct endings
         this.assertEqual(
-            routeScene('ending_check', {
-                trustedElena: true, sharedWithPriya: true,
-                supportedCompromise: true, opposedCompromise: false
-            }),
-            'ending_a',
-            'Both allies + supported -> ending_a (Pyrrhic Victory)'
-        );
-
-        // Ending routing - Both allies + opposed
-        this.assertEqual(
-            routeScene('ending_check', {
-                trustedElena: true, sharedWithPriya: true,
-                supportedCompromise: false, opposedCompromise: true
-            }),
-            'ending_b',
-            'Both allies + opposed -> ending_b (Moral Victory)'
-        );
-
-        // Ending routing - One ally
-        this.assertEqual(
-            routeScene('ending_check', {
-                trustedElena: true, sharedWithPriya: false
-            }),
-            'ending_b_partial',
-            'Only Elena -> ending_b_partial (Compromise)'
+            routeScene('ending_check', { trustedElena: true, sharedWithPriya: true, negotiated: true }),
+            'ending_incremental',
+            'Both + negotiated -> ending_incremental'
         );
         this.assertEqual(
-            routeScene('ending_check', {
-                trustedElena: false, sharedWithPriya: true
-            }),
-            'ending_b_partial',
-            'Only Priya -> ending_b_partial (Compromise)'
+            routeScene('ending_check', { trustedElena: true, sharedWithPriya: true, walkedAway: true }),
+            'ending_walked_away',
+            'Both + walked away -> ending_walked_away'
         );
-
-        // Ending routing - No allies
         this.assertEqual(
-            routeScene('ending_check', {
-                trustedElena: false, sharedWithPriya: false
-            }),
-            'ending_c',
-            'No allies -> ending_c (Status Quo)'
+            routeScene('ending_check', { trustedElena: true, sharedWithPriya: false }),
+            'ending_cassandra',
+            'Elena only -> ending_cassandra'
+        );
+        this.assertEqual(
+            routeScene('ending_check', { trustedElena: false, sharedWithPriya: true }),
+            'ending_pyrrhic',
+            'Priya only -> ending_pyrrhic'
+        );
+        this.assertEqual(
+            routeScene('ending_check', { trustedElena: false, sharedWithPriya: false }),
+            'ending_status_quo',
+            'No allies -> ending_status_quo'
         );
 
         // Invalid router returns null
@@ -302,9 +285,11 @@ const TestRunner = {
         this.assert(sceneIds.length > 0, 'STORY.scenes has scenes defined');
         this.assert(sceneIds.includes('intro'), 'intro scene exists');
         this.assert(sceneIds.includes('the_filibuster'), 'the_filibuster scene exists');
-        this.assert(sceneIds.includes('ending_a'), 'ending_a scene exists');
-        this.assert(sceneIds.includes('ending_b'), 'ending_b scene exists');
-        this.assert(sceneIds.includes('ending_c'), 'ending_c scene exists');
+        this.assert(sceneIds.includes('ending_status_quo'), 'ending_status_quo scene exists');
+        this.assert(sceneIds.includes('ending_cassandra'), 'ending_cassandra scene exists');
+        this.assert(sceneIds.includes('ending_pyrrhic'), 'ending_pyrrhic scene exists');
+        this.assert(sceneIds.includes('ending_incremental'), 'ending_incremental scene exists');
+        this.assert(sceneIds.includes('ending_walked_away'), 'ending_walked_away scene exists');
 
         // Verify scenes have required properties
         for (const [id, scene] of Object.entries(STORY.scenes)) {
@@ -332,63 +317,120 @@ const TestRunner = {
         }
 
         // Ending scenes have correct properties
-        const endings = ['ending_a', 'ending_b', 'ending_b_partial', 'ending_c'];
+        const endings = ['ending_status_quo', 'ending_cassandra', 'ending_pyrrhic', 'ending_incremental', 'ending_walked_away'];
         for (const endingId of endings) {
             const ending = STORY.scenes[endingId];
             this.assert(ending.isEnding === true, `${endingId} has isEnding=true`);
             this.assert(ending.endingType, `${endingId} has endingType`);
         }
 
-        // Verify no orphaned _spokeup scenes exist (they should be consolidated)
+        // Verify old endings have been removed
+        this.assert(!STORY.scenes.ending_a, 'ending_a removed (replaced by new structure)');
+        this.assert(!STORY.scenes.ending_b, 'ending_b removed (replaced by new structure)');
+        this.assert(!STORY.scenes.ending_c, 'ending_c removed (replaced by new structure)');
+    },
+
+    // Test 7: Character Differentiation and Payoff
+    testCharacterPayoff() {
+        console.log('\n--- Character Payoff Tests ---');
+
+        // PRIYA: Should NOT mention Amendment 7 (that's Elena's intel)
+        const priyaAlly = STORY.scenes.priya_ally;
+        const amendment7Line = priyaAlly.dialogue.find(d => d.text && d.text.includes('Amendment 7'));
         this.assert(
-            !STORY.scenes.ending_a_spokeup,
-            'ending_a_spokeup has been consolidated'
+            amendment7Line === undefined,
+            'Priya does not mention Amendment 7 (differentiated from Elena)'
+        );
+
+        // PRIYA: Should mention her unique value - knowing WHO can be moved
+        const elenaAimLine = priyaAlly.dialogue.find(d => d.text && d.text.includes('Elena can tell you where to aim'));
+        this.assert(
+            elenaAimLine !== undefined,
+            'Priya explicitly differentiates her value from Elena'
+        );
+
+        // ELENA: Markup should show her intel paying off (Amendments 3-6 sacrificial)
+        const markup = STORY.scenes.markup_hearing;
+        const elenaPayoff = markup.dialogue.find(d =>
+            d.text && d.text.includes('Elena\'s prediction') && d.conditionalOnly === 'trustedElena'
         );
         this.assert(
-            !STORY.scenes.ending_b_spokeup,
-            'ending_b_spokeup has been consolidated'
+            elenaPayoff !== undefined,
+            'Markup shows Elena\'s intel paying off (conditionally)'
         );
+
+        // PRIYA: Markup should show her votes paying off (Jenny Chen)
+        const priyaLine = markup.dialogue.find(d => d.speaker === 'Priya' && d.conditionalOnly === 'sharedWithPriya');
         this.assert(
-            !STORY.scenes.ending_c_spokeup,
-            'ending_c_spokeup has been consolidated'
+            priyaLine !== undefined,
+            'Markup shows Priya\'s vote paying off (conditionally)'
+        );
+
+        // Vote count should change based on Priya's help
+        const voteCountLine = markup.dialogue.find(d => d.text && d.text.includes('12-10') && d.conditionalText);
+        this.assert(
+            voteCountLine !== undefined && voteCountLine.conditionalText.sharedWithPriya.includes('11-11'),
+            'With Priya, vote is closer (11-11 tie)'
+        );
+
+        // Each climax path should be distinct
+        this.assert(STORY.scenes.climax_neither !== undefined, 'climax_neither exists (no allies)');
+        this.assert(STORY.scenes.climax_elena_only !== undefined, 'climax_elena_only exists (intel only)');
+        this.assert(STORY.scenes.climax_priya_only !== undefined, 'climax_priya_only exists (votes only)');
+        this.assert(STORY.scenes.climax_both !== undefined, 'climax_both exists (full negotiation)');
+
+        // Elena-only path should reflect understanding without power
+        const elenaOnly = STORY.scenes.climax_elena_only;
+        const understandLine = elenaOnly.dialogue.find(d => d.text && d.text.includes('Understanding it'));
+        this.assert(
+            understandLine !== undefined,
+            'Elena-only climax reflects knowing but not acting'
+        );
+
+        // Priya-only path should reflect winning battle but losing war
+        const priyaOnly = STORY.scenes.climax_priya_only;
+        const conferenceCommittee = priyaOnly.dialogue.find(d => d.text && d.text.includes('conference committee'));
+        this.assert(
+            conferenceCommittee !== undefined,
+            'Priya-only climax shows victory undone in conference'
         );
     },
 
-    // Test 7: Complete Ending Paths
+    // Test 8: Complete Ending Paths
     testEndingPaths() {
         console.log('\n--- Ending Path Tests ---');
 
-        // Simulate game flag states and verify correct endings are reachable
+        // All five distinct ending paths
         const testCases = [
             {
-                name: 'Pyrrhic Victory path (both allies, supported)',
-                flags: { trustedElena: true, sharedWithPriya: true, supportedCompromise: true, spokeUp: false },
-                expectedEnding: 'ending_a',
+                name: 'Status Quo (no allies)',
+                flags: { trustedElena: false, sharedWithPriya: false },
+                expectedEnding: 'ending_status_quo',
+                expectedType: 'The Status Quo'
+            },
+            {
+                name: 'Cassandra (Elena only)',
+                flags: { trustedElena: true, sharedWithPriya: false },
+                expectedEnding: 'ending_cassandra',
+                expectedType: 'The Cassandra'
+            },
+            {
+                name: 'Pyrrhic (Priya only)',
+                flags: { trustedElena: false, sharedWithPriya: true },
+                expectedEnding: 'ending_pyrrhic',
                 expectedType: 'The Pyrrhic Victory'
             },
             {
-                name: 'Moral Victory path (both allies, opposed)',
-                flags: { trustedElena: true, sharedWithPriya: true, opposedCompromise: true, spokeUp: false },
-                expectedEnding: 'ending_b',
-                expectedType: 'The Moral Victory'
+                name: 'Incremental (both + negotiated)',
+                flags: { trustedElena: true, sharedWithPriya: true, negotiated: true },
+                expectedEnding: 'ending_incremental',
+                expectedType: 'The Incremental Victory'
             },
             {
-                name: 'Compromise path (one ally - Elena)',
-                flags: { trustedElena: true, sharedWithPriya: false, spokeUp: false },
-                expectedEnding: 'ending_b_partial',
-                expectedType: 'The Compromise'
-            },
-            {
-                name: 'Compromise path (one ally - Priya)',
-                flags: { trustedElena: false, sharedWithPriya: true, spokeUp: false },
-                expectedEnding: 'ending_b_partial',
-                expectedType: 'The Compromise'
-            },
-            {
-                name: 'Status Quo path (no allies)',
-                flags: { trustedElena: false, sharedWithPriya: false, spokeUp: false },
-                expectedEnding: 'ending_c',
-                expectedType: 'The Status Quo'
+                name: 'Walked Away (both + refused deal)',
+                flags: { trustedElena: true, sharedWithPriya: true, walkedAway: true },
+                expectedEnding: 'ending_walked_away',
+                expectedType: 'The Principled Stand'
             }
         ];
 
@@ -401,6 +443,10 @@ const TestRunner = {
                 testCase.expectedEnding,
                 `${testCase.name}: routes to ${testCase.expectedEnding}`
             );
+            this.assert(
+                ending !== undefined,
+                `${testCase.name}: ending scene exists`
+            );
             this.assertEqual(
                 ending.endingType,
                 testCase.expectedType,
@@ -408,37 +454,19 @@ const TestRunner = {
             );
         }
 
-        // Test that spokeUp flag affects dialogue content (not routing)
-        const mockManager = {
-            gameFlags: { spokeUp: true },
-            processConditionalDialogue: SceneManager.prototype.processConditionalDialogue
-        };
-
-        // Ending A with spokeUp should have different Sarah dialogue
-        const endingA = STORY.scenes.ending_a;
-        const processedA = mockManager.processConditionalDialogue(endingA);
-        const sarahLine = processedA.dialogue.find(d => d.speaker === 'Sarah' && d.text.includes('Technically'));
+        // Verify endings reflect incremental victories
+        const incremental = STORY.scenes.ending_incremental;
+        const quarterlyReports = incremental.dialogue.find(d => d.text && d.text.includes('quarterly'));
         this.assert(
-            sarahLine.text.includes('people noticed'),
-            'ending_a with spokeUp has modified Sarah dialogue'
+            quarterlyReports !== undefined,
+            'Incremental ending shows small concrete win (quarterly reports)'
         );
 
-        // Ending C with spokeUp should include "Did anyone hear?" line
-        const endingC = STORY.scenes.ending_c;
-        const processedC = mockManager.processConditionalDialogue(endingC);
-        const hearLine = processedC.dialogue.find(d => d.text === 'Did anyone hear?');
+        // Verify the "best" ending still feels small
+        const notClose = incremental.dialogue.find(d => d.text && d.text.includes('not even close'));
         this.assert(
-            hearLine !== undefined,
-            'ending_c with spokeUp includes "Did anyone hear?" line'
-        );
-
-        // Ending C without spokeUp should NOT include "Did anyone hear?"
-        mockManager.gameFlags = { spokeUp: false };
-        const processedCNoSpoke = mockManager.processConditionalDialogue(endingC);
-        const hearLineNoSpoke = processedCNoSpoke.dialogue.find(d => d.text === 'Did anyone hear?');
-        this.assert(
-            hearLineNoSpoke === undefined,
-            'ending_c without spokeUp excludes "Did anyone hear?" line'
+            notClose !== undefined,
+            'Even best ending acknowledges victory is small'
         );
     }
 };

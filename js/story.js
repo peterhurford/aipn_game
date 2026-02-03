@@ -74,37 +74,49 @@ const ROUTING_RULES = {
     climax_choice_check: {
         rules: [
             {
+                // Both allies = full negotiation option
                 condition: (flags) => flags.trustedElena && flags.sharedWithPriya,
-                target: 'climax_choice'
+                target: 'climax_both'
+            },
+            {
+                // Elena only = you understand but can't act
+                condition: (flags) => flags.trustedElena,
+                target: 'climax_elena_only'
+            },
+            {
+                // Priya only = you can act but don't understand
+                condition: (flags) => flags.sharedWithPriya,
+                target: 'climax_priya_only'
             }
         ],
-        default: 'climax_no_leverage'
+        // Neither = you're irrelevant
+        default: 'climax_neither'
     },
     ending_check: {
         rules: [
             {
-                // Both allies + supported compromise = Pyrrhic Victory
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.supportedCompromise,
-                target: 'ending_a'
+                // Both allies + negotiated = Incremental victory
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.negotiated,
+                target: 'ending_incremental'
             },
             {
-                // Both allies + opposed compromise = Moral Victory
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.opposedCompromise,
-                target: 'ending_b'
+                // Both allies + opposed = you had leverage but walked away
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.walkedAway,
+                target: 'ending_walked_away'
             },
             {
-                // Both allies but no choice made (fallback) = Pyrrhic Victory
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya,
-                target: 'ending_a'
+                // Elena only = Cassandra (you saw it coming)
+                condition: (flags) => flags.trustedElena,
+                target: 'ending_cassandra'
             },
             {
-                // One ally = Compromise (not enough leverage)
-                condition: (flags) => flags.trustedElena || flags.sharedWithPriya,
-                target: 'ending_b_partial'
+                // Priya only = Pyrrhic (won battle, lost war)
+                condition: (flags) => flags.sharedWithPriya,
+                target: 'ending_pyrrhic'
             }
         ],
-        // No allies = Status Quo
-        default: 'ending_c'
+        // No allies = Status Quo (bill died, you were irrelevant)
+        default: 'ending_status_quo'
     }
 };
 
@@ -130,8 +142,8 @@ const STORY = {
         foundEvidence: false,
         knowsTheTruth: false,
         spokeUp: false,
-        supportedCompromise: false,
-        opposedCompromise: false
+        negotiated: false,
+        walkedAway: false
     },
 
     // Scene definitions
@@ -782,6 +794,11 @@ const STORY = {
                     speaker: 'Priya',
                     text: 'So now I don\'t give advice.',
                     portrait: 'portrait-priya'
+                },
+                {
+                    speaker: 'Priya',
+                    text: 'Stopping things is easy. Trying to actually make something happen is harder.',
+                    portrait: 'portrait-priya'
                 }
             ],
             choices: [
@@ -842,17 +859,17 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: 'The markup\'s in two weeks. Amendment 7—"flexible compliance frameworks"—that\'s the one to watch.',
+                    text: 'Elena can tell you where to aim. I can tell you who might actually listen.',
                     portrait: 'portrait-priya'
                 },
                 {
                     speaker: 'Priya',
-                    text: 'Jenny Chen on the committee is a maybe. She owes me a favor from the 2019 privacy bill. I could call it in.',
+                    text: 'Jenny Chen on the committee. She\'s a maybe on everything, but she owes me a favor from the 2019 privacy bill.',
                     portrait: 'portrait-priya'
                 },
                 {
                     speaker: 'Priya',
-                    text: 'But I\'m not spending that on someone who\'s going to be at Prometheus in eighteen months.',
+                    text: 'One phone call, and you\'ve got her vote. But I\'m not spending that on someone who\'s going to be at Prometheus in eighteen months.',
                     portrait: 'portrait-priya'
                 },
                 {
@@ -976,8 +993,31 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Chairman',
+                    text: 'The chair recognizes Congressman Peters for Amendment 3.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You watch Elena\'s prediction play out. Amendments 3, 4, 5, 6—industry barely fights for them. Token opposition. They pass easily.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendments 3 through 6 pass with little debate. Minor provisions. Nobody seems to care much.',
+                    portrait: null,
+                    conditionalOnly: '!trustedElena'
+                },
+                {
+                    speaker: 'Chairman',
                     text: 'The chair recognizes Congressman Peters for Amendment 7.',
                     portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Here it is. The real fight. Just like Elena said.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Peters',
@@ -995,6 +1035,18 @@ const STORY = {
                     portrait: null
                 },
                 {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Priya.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Jenny\'s in. She\'ll vote no on 7. You owe me."',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
                     speaker: 'Chairman',
                     text: 'All in favor of Amendment 7?',
                     portrait: null
@@ -1002,12 +1054,20 @@ const STORY = {
                 {
                     speaker: 'Chairman',
                     text: 'The amendment passes. 12-10.',
+                    conditionalText: { sharedWithPriya: 'The amendment passes. 11-11. The chair votes aye to break the tie.' },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
                     text: 'Two votes.',
+                    conditionalText: { sharedWithPriya: 'One vote. The chair\'s vote.' },
                     portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You look at Jenny Chen. She catches your eye. Nods.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
                 }
             ],
             nextScene: 'climax'
@@ -1034,124 +1094,237 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: '"Floor vote next month. Leadership wants to know if we\'re supporting the bill as amended."',
+                    text: '"Floor vote next month. Leadership wants to know our position."',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
                     text: 'You stare at the dome.',
                     portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Support the compromised bill—get something on the books, claim a win, move on. Or oppose it—kill your own bill rather than pass a hollow version.',
-                    portrait: null
                 }
             ],
             nextScene: 'climax_choice_check'
         },
 
-        // Route based on whether player has enough allies to matter
+        // Route based on which allies you have
         climax_choice_check: {
             id: 'climax_choice_check',
             isRouter: true,
             routerId: 'climax_choice_check'
         },
 
-        // Only shown if you have both allies
-        climax_choice: {
-            id: 'climax_choice',
+        // NEITHER: No allies - bill died, you were irrelevant
+        climax_neither: {
+            id: 'climax_neither',
             ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Elena texts: "Your call. I can spin it either way."',
+                    text: 'The bill died in committee anyway. Not enough votes. Not enough momentum.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Priya texts: "Whatever you decide, I\'ll back you. But decide what you can live with."',
+                    text: 'You weren\'t at the table. You didn\'t know the players. You didn\'t have leverage.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'It would have died with or without you.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'ending_check'
+        },
+
+        // ELENA ONLY: You understand but can't act
+        climax_elena_only: {
+            id: 'climax_elena_only',
+            ...LOCATIONS.mall,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"You saw it coming, right? Amendments 3-6 were always sacrificial. They got exactly what they wanted."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'I saw it. I just couldn\'t stop it.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"That\'s the game. Understanding it doesn\'t mean you can change it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"Not without people on the inside. Votes. Leverage."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'She\'s right. You knew where to aim. You just didn\'t have anyone to pull the trigger.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'ending_check'
+        },
+
+        // PRIYA ONLY: You can act but don't understand
+        climax_priya_only: {
+            id: 'climax_priya_only',
+            ...LOCATIONS.mall,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Jenny came through. Amendment 7 died on the floor. 11-11, and the chair didn\'t break the tie this time."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'We won?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"We killed Amendment 7. But..."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"The conference committee just added the same language back in. Different amendment number. Same effect."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'How?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"I don\'t know. Someone on the inside would have seen it coming. We didn\'t."',
+                    portrait: null
+                }
+            ],
+            nextScene: 'ending_check'
+        },
+
+        // BOTH: Full picture + leverage = real choice
+        climax_both: {
+            id: 'climax_both',
+            ...LOCATIONS.mall,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena, then Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"You\'ve got Jenny\'s vote. And I know what they\'ll accept. There\'s a deal here if you want it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Elena says you can trade. Amendments 3-6 for a less gutted Amendment 7. Is that real?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"It\'s real. They keep their \'flexible frameworks\' but we get actual reporting requirements. Quarterly instead of annual. Public instead of confidential."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"That\'s not nothing."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"It\'s not much either. But it\'s something they\'ll actually have to do."',
                     portrait: null
                 }
             ],
             choices: [
                 {
-                    text: 'Support the bill. Something is better than nothing.',
-                    setFlags: { supportedCompromise: true },
-                    nextDialogue: 'climax_support'
+                    text: 'Make the trade. Get what we can.',
+                    setFlags: { negotiated: true },
+                    nextDialogue: 'climax_negotiate'
                 },
                 {
-                    text: 'Oppose it. We don\'t put our name on theater.',
-                    setFlags: { opposedCompromise: true },
-                    nextDialogue: 'climax_oppose'
+                    text: 'No deals. We walk away clean.',
+                    setFlags: { walkedAway: true },
+                    nextDialogue: 'climax_walk_away'
                 }
             ]
         },
 
-        climax_support: {
-            id: 'climax_support',
+        climax_negotiate: {
+            id: 'climax_negotiate',
             ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'You',
-                    text: 'You text Sarah: "We support it. It\'s not what we wanted, but it\'s a foundation."',
+                    text: 'Make the trade.',
                     portrait: null
                 },
                 {
-                    speaker: 'Sarah',
-                    text: '"Copy. I\'ll let leadership know."',
+                    speaker: 'Elena',
+                    text: '"I\'ll make some calls."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Quarterly public reports. That\'s more than we\'ve ever gotten."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'It\'s a start.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"It\'s always a start. That\'s the job."',
                     portrait: null
                 }
             ],
             nextScene: 'ending_check'
         },
 
-        climax_oppose: {
-            id: 'climax_oppose',
+        climax_walk_away: {
+            id: 'climax_walk_away',
             ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'You',
-                    text: 'You text Sarah: "We can\'t support this version. It\'s worse than nothing—it\'s cover."',
+                    text: 'No. We don\'t trade away our principles for quarterly reports.',
                     portrait: null
                 },
                 {
-                    speaker: 'Sarah',
-                    text: '"...Understood. That\'s going to be a hard sell."',
+                    speaker: 'Elena',
+                    text: '"Your call. The bill passes anyway, with or without the deal."',
                     portrait: null
                 },
                 {
-                    speaker: 'You',
-                    text: '"I know."',
-                    portrait: null
-                }
-            ],
-            nextScene: 'ending_check'
-        },
-
-        // Shown if you don't have both allies - you don't have enough leverage for the choice to matter
-        climax_no_leverage: {
-            id: 'climax_no_leverage',
-            ...LOCATIONS.mall,
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'You think about opposing the bill. Taking a stand.',
+                    speaker: 'Priya',
+                    text: '"At least we didn\'t help them."',
                     portrait: null
                 },
                 {
-                    speaker: 'Narrator',
-                    text: 'But without allies, your opposition is just noise. The vote will happen with or without you.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'You text Sarah: "I\'ll be at the call tomorrow."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: '"Good. Bring coffee."',
+                    speaker: 'Elena',
+                    text: '"No. You just didn\'t help anyone."',
                     portrait: null
                 }
             ],
@@ -1165,225 +1338,25 @@ const STORY = {
             routerId: 'ending_check'
         },
 
-        // Ending A: Pyrrhic Victory - supported compromise, bill passes but hollow
-        ending_a: {
-            id: 'ending_a',
-            ...LOCATIONS.officeSixMonths,
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act passes the House. 231 to 204.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '"Mandatory testing" became "encouraged to consider." "Required disclosure" became "voluntary transparency."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She drops a bottle of champagne on your desk.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'We won. Technically.',
-                    conditionalText: { spokeUp: 'We won. Technically. And people noticed you pushing back.' },
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your phone buzzes.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Elena',
-                    text: '"Drinks? I need to complain about how badly we lost."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"It\'s something. It\'s not nothing. That\'s... something."',
-                    conditionalText: { spokeUp: '"Jenny says you made an impression. That matters for next time."' },
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your desk is already covered in new briefs. The Senate version. The implementation regs. MindScale\'s comment letter.',
-                    conditionalText: { spokeUp: 'Your desk is already covered in new briefs. The Senate version. The implementation regs.' },
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Ready for round two?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Pyrrhic Victory'
-        },
-
-        // ending_a_spokeup now handled via conditionalText in ending_a
-
-        // Ending B: Moral Victory - opposed compromise on principle, bill dies
-        ending_b: {
-            id: 'ending_b',
-            ...LOCATIONS.officeThreeMonths,
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act dies on the floor. You helped kill it.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'MindScale put out a statement "thanking advocates for their principled stand against flawed legislation."',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'That\'s not why we—',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: "Doesn't matter. That's the story now.",
-                    conditionalText: { spokeUp: "Doesn't matter. That's the story now. At least you spoke up." },
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'Did it matter?',
-                    portrait: null,
-                    conditionalOnly: 'spokeUp'
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She shrugs.',
-                    portrait: null,
-                    isAction: true,
-                    conditionalOnly: 'spokeUp'
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your phone buzzes.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Elena',
-                    text: '"I get why you did it. Not sure it was the right call, but I get it."',
-                    conditionalText: { spokeUp: '"I get why you did it. Not sure it was the right call."' },
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"New bill next session. Same fight. You ready to do this again?"',
-                    conditionalText: { spokeUp: '"New bill next session. Same fight."' },
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You look at the stack of briefs on your desk. The same briefs. New dates.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Coalition call in ten.',
-                    portrait: null,
-                    conditionalOnly: '!spokeUp'
-                },
-                {
-                    speaker: 'Narrator',
-                    text: "At least you can live with yourself. That's not nothing. It's also not much.",
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Moral Victory'
-        },
-
-        // ending_b_spokeup now handled via conditionalText in ending_b
-
-        // Ending B Partial: One ally - not enough leverage
-        ending_b_partial: {
-            id: 'ending_b_partial',
-            ...LOCATIONS.officeThreeMonths,
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act passes. "Encouraged to consider appropriate evaluation practices."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You weren\'t at the table when it mattered. Not enough allies. Not enough leverage.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'MindScale put out a press release praising the "thoughtful, balanced approach."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your computer chimes. An email from a Senate staffer.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Staffer',
-                    text: '"We\'re looking at the Senate version. Want to try again?"',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You think about the allies you didn\'t make. The doors that didn\'t open.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You start typing a reply.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Compromise'
-        },
-
-        // Ending C: Status Quo - no allies, bill dies
-        ending_c: {
-            id: 'ending_c',
+        // ENDING: Status Quo - neither ally, bill died, you were irrelevant
+        ending_status_quo: {
+            id: 'ending_status_quo',
             ...LOCATIONS.officeNextCongress,
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act dies on the floor. "Tabled for further consideration."',
+                    text: 'The Frontier AI Safety Act dies in committee. "Tabled for further consideration."',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
                     text: 'New Congress, new bill. Same language.',
-                    conditionalText: { spokeUp: 'New Congress, new bill. Same language. At least you spoke up.' },
+                    conditionalText: { spokeUp: 'New Congress, new bill. Same language. At least you spoke up in those meetings.' },
                     portrait: null
                 },
                 {
                     speaker: 'You',
-                    text: 'Did anyone hear?',
+                    text: 'Did anyone notice?',
                     portrait: null,
                     conditionalOnly: 'spokeUp'
                 },
@@ -1406,12 +1379,16 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: 'You never did get that drink.',
-                    portrait: null,
-                    conditionalOnly: '!spokeUp'
+                    portrait: null
                 },
                 {
                     speaker: 'Sarah',
                     text: 'Coalition call in ten.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The bill would have died with or without you. That\'s the worst part.',
                     portrait: null
                 },
                 {
@@ -1422,8 +1399,322 @@ const STORY = {
             ],
             isEnding: true,
             endingType: 'The Status Quo'
-        }
+        },
 
-        // ending_c_spokeup now handled via conditionalText in ending_c
+        // ENDING: Cassandra - Elena only, you saw it coming but couldn't stop it
+        ending_cassandra: {
+            id: 'ending_cassandra',
+            ...LOCATIONS.officeSixMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 231 to 204.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '"Mandatory testing" became "encouraged to consider." Just like Elena said it would.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'You called it. Every amendment, every vote.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Lot of good it did.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"For what it\'s worth, you were right about all of it. Amendments 3-6 were always sacrificial."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'And Amendment 7 was always the real fight.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"Next time, find someone who can actually move votes. Understanding the game is only half of it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'She\'s right. You saw the trap. You just couldn\'t do anything about it.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Senate version next. Same playbook?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Same playbook. Different players, maybe.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Cassandra'
+        },
+
+        // ENDING: Pyrrhic - Priya only, won the battle, lost the war
+        ending_pyrrhic: {
+            id: 'ending_pyrrhic',
+            ...LOCATIONS.officeThreeMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 228 to 207.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'We killed Amendment 7. Jenny Chen came through.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'So why does the bill look exactly the same?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Conference committee. They added the language back in under a different amendment number.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"I heard. I\'m sorry. I didn\'t see it coming."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Neither did I.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"We needed someone on the inside. Someone who knew their playbook."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You had the votes. You just didn\'t know where to aim them.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'MindScale put out a statement thanking us for "improving the legislative process."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Of course they did.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Pyrrhic Victory'
+        },
+
+        // ENDING: Incremental - both allies, negotiated a small win
+        ending_incremental: {
+            id: 'ending_incremental',
+            ...LOCATIONS.officeSixMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 235 to 200.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '"Mandatory testing" became "encouraged to consider." But the quarterly public reporting requirement stayed in.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She drops a folder on your desk.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'First quarterly report from MindScale. It\'s... not nothing.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You flip through it. Boilerplate, mostly. But there\'s actual data in there. Deployment numbers. Incident counts.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"The reporting requirement is annoying them. That\'s how you know it matters."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Another buzz. Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Jenny\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'So. Did we win?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'We got quarterly reports instead of annual. Public instead of confidential.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'That\'s it?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'That\'s it. For now.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'It\'s not the bill you wanted. It\'s not even close. But someone, somewhere, will read those reports. And maybe that matters.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Maybe.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Incremental Victory'
+        },
+
+        // ENDING: Walked Away - both allies, refused to deal
+        ending_walked_away: {
+            id: 'ending_walked_away',
+            ...LOCATIONS.officeThreeMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 231 to 204.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The full industry version. Every amendment intact.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Elena said we could have gotten quarterly public reports. Was that real?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'It was real.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'And we said no.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'We said no.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"I get it. You didn\'t want to legitimize a bad bill. But now they have everything and we have nothing."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Another buzz. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"For what it\'s worth, I respect the call. I just don\'t understand it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Would the reports have mattered?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'I don\'t know. Maybe. Probably not.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Then why does this feel like a loss?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You don\'t have an answer for that.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Principled Stand'
+        }
     }
 };
