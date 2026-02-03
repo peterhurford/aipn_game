@@ -367,10 +367,10 @@ const TestRunner = {
         );
 
         // Vote count should change based on Priya's help
-        const voteCountLine = markup.dialogue.find(d => d.text && d.text.includes('13-9') && d.conditionalText);
+        const voteCountLine = markup.dialogue.find(d => d.text && d.text.includes('12-10') && d.conditionalText);
         this.assert(
-            voteCountLine !== undefined && voteCountLine.conditionalText.sharedWithPriya.includes('12-10'),
-            'With Priya, vote is closer (13-9 -> 12-10)'
+            voteCountLine !== undefined && voteCountLine.conditionalText.sharedWithPriya.includes('11-10'),
+            'With Priya, vote is closer (12-10 -> 11-10)'
         );
 
         // Each climax path should be distinct
