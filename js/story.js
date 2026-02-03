@@ -864,7 +864,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: 'Jenny Chen on the committee. She\'s a maybe on everything, but she owes me a favor from the 2019 privacy bill.',
+                    text: 'Margaret Chen on the committee. She\'s a maybe on everything, but she owes me a favor from the 2019 privacy bill.',
                     portrait: 'portrait-priya'
                 },
                 {
@@ -1042,7 +1042,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Jenny\'s in. She\'ll vote no on 7. You owe me."',
+                    text: '"Margaret\'s in. She\'ll vote no on 7. You owe me."',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 },
@@ -1060,12 +1060,12 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: 'Two votes.',
-                    conditionalText: { sharedWithPriya: 'One vote. Jenny Chen made a difference, but not enough.' },
+                    conditionalText: { sharedWithPriya: 'One vote. Margaret Chen made a difference, but not enough.' },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You look at Jenny Chen. She catches your eye. Nods.',
+                    text: 'You look at Margaret Chen. She catches your eye. Nods.',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 }
@@ -1188,7 +1188,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Jenny came through. Amendment 7 failed on the floor. 10-11."',
+                    text: '"Margaret came through. Amendment 7 failed on the floor. 10-11."',
                     portrait: null
                 },
                 {
@@ -1232,7 +1232,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: '"You\'ve got Jenny\'s vote. And I know what they\'ll accept. There\'s a deal here if you want it."',
+                    text: '"You\'ve got Margaret\'s vote. And I know what they\'ll accept. There\'s a deal here if you want it."',
                     portrait: null
                 },
                 {
@@ -1483,7 +1483,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'We killed Amendment 7. Jenny Chen came through.',
+                    text: 'We killed Amendment 7. Margaret Chen came through.',
                     portrait: null
                 },
                 {
@@ -1589,7 +1589,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Jenny\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
+                    text: '"Margaret\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
                     portrait: null
                 },
                 {
