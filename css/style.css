@@ -1,0 +1,608 @@
+/* Base Reset and Variables */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #2a2f23;
+    --secondary-color: #3d4035;
+    --accent-color: #e94560;
+    --text-color: #eee;
+    --text-dim: #a0a090;
+    --dialogue-bg: rgba(35, 38, 30, 0.95);
+    --choice-bg: rgba(45, 48, 40, 0.95);
+    --choice-hover: rgba(233, 69, 96, 0.8);
+    --beige: #d4c8a8;
+    --paper-white: #f5f5f0;
+}
+
+body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background-color: #1a1c18;
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+/* Game Container */
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Screen States */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.screen.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* Main Menu */
+#main-menu {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, #1f231a 100%);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.menu-content {
+    text-align: center;
+}
+
+.game-title {
+    font-size: 4rem;
+    font-weight: 400;
+    letter-spacing: 0.3rem;
+    color: var(--accent-color);
+    text-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+    margin-bottom: 0.5rem;
+    font-family: 'Georgia', serif;
+    animation: pulse 3s ease-in-out infinite alternate;
+}
+
+.game-subtitle {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.2rem;
+    color: var(--text-dim);
+    margin-bottom: 3rem;
+    font-style: italic;
+}
+
+@keyframes pulse {
+    from {
+        text-shadow: 0 0 20px rgba(233, 69, 96, 0.4);
+    }
+    to {
+        text-shadow: 0 0 30px rgba(233, 69, 96, 0.6), 0 0 50px rgba(233, 69, 96, 0.3);
+    }
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.menu-btn {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+    font-weight: 400;
+    letter-spacing: 0.1rem;
+    color: var(--text-color);
+    background: transparent;
+    border: 2px solid var(--accent-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.menu-btn:hover:not(:disabled) {
+    background: var(--accent-color);
+    box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+}
+
+.menu-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Game Screen */
+#game-screen {
+    background: var(--primary-color);
+}
+
+/* Scene Background */
+#scene-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 0.8s ease;
+}
+
+/* Background Gradients for Different Locations */
+
+/* AIPN Office - Fluorescent purgatory, institutional beige */
+.bg-office {
+    background: linear-gradient(180deg,
+        #3a3d30 0%,
+        #4a4d40 20%,
+        #3a3d30 40%,
+        #2a2d20 100%
+    );
+}
+
+.bg-office::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 255, 240, 0.02) 2px,
+        rgba(255, 255, 240, 0.02) 4px
+    );
+    pointer-events: none;
+}
+
+/* The Filibuster Bar - Dark amber, where hope goes to drink */
+.bg-bar {
+    background: linear-gradient(180deg,
+        #2d1f15 0%,
+        #3d2920 30%,
+        #4a3525 50%,
+        #2a1f15 100%
+    );
+}
+
+/* Center for AI Accountability - Academic clutter, paper white, coffee stains */
+.bg-thinktank {
+    background: linear-gradient(180deg,
+        #4a4840 0%,
+        #5a5850 30%,
+        #4a4840 70%,
+        #3a3830 100%
+    );
+}
+
+.bg-thinktank::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 30%, rgba(139, 90, 43, 0.1) 0%, transparent 40%),
+        radial-gradient(ellipse at 70% 60%, rgba(139, 90, 43, 0.08) 0%, transparent 35%);
+    pointer-events: none;
+}
+
+/* National Mall at Night - Monumental loneliness, deep navy */
+.bg-mall {
+    background: linear-gradient(180deg,
+        #0a0f1a 0%,
+        #151a2a 30%,
+        #1a2035 60%,
+        #0f1420 100%
+    );
+}
+
+/* Rayburn Building - Power blue, mahogany, impressive machinery */
+.bg-capitol {
+    background: linear-gradient(180deg,
+        #1a2a3a 0%,
+        #2a3a4a 30%,
+        #354555 60%,
+        #1a2a3a 100%
+    );
+}
+
+/* Location Indicator */
+#location-indicator {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.7);
+    border-left: 3px solid var(--accent-color);
+    font-size: 0.9rem;
+    letter-spacing: 0.1rem;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#location-indicator.visible {
+    opacity: 1;
+}
+
+/* Character Portrait */
+#character-portrait {
+    position: absolute;
+    bottom: 200px;
+    left: 50px;
+    width: 200px;
+    height: 280px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateY(20px);
+}
+
+#character-portrait.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Character Portrait Placeholders (CSS-only) */
+
+/* Elena Vance - Industry insider turned whistleblower */
+.portrait-elena {
+    background: linear-gradient(180deg, transparent 0%, #3d2920 100%);
+    border-radius: 10px;
+}
+
+.portrait-elena::before {
+    content: '🔥';
+    font-size: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+/* Dr. Priya Sharma - Academic researcher */
+.portrait-priya {
+    background: linear-gradient(180deg, transparent 0%, #4a4840 100%);
+    border-radius: 10px;
+}
+
+.portrait-priya::before {
+    content: '📚';
+    font-size: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.portrait-narrator {
+    background: none;
+}
+
+/* Dialogue Box */
+#dialogue-box {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 900px;
+    min-height: 150px;
+    padding: 1.5rem 2rem;
+    background: var(--dialogue-bg);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 5px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#dialogue-box.visible {
+    opacity: 1;
+}
+
+#character-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.15rem;
+    margin-bottom: 0.75rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#dialogue-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-color);
+    min-height: 60px;
+}
+
+/* Speaker-specific styling */
+
+/* Action lines (non-dialogue descriptions) */
+.is-action #character-name {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.is-action #dialogue-text {
+    font-style: italic;
+    opacity: 0.85;
+    border-left: none !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    background: none !important;
+}
+
+/* Narrator - scene description, no name shown */
+.speaker-narrator #character-name {
+    color: #888880;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.85rem;
+    letter-spacing: 0.1rem;
+    opacity: 0.7;
+}
+
+.speaker-narrator #dialogue-text {
+    font-style: italic;
+    color: #a8a8a0;
+    font-size: 1.05rem;
+}
+
+/* You (player) - distinct blue, strong presence */
+.speaker-you #character-name {
+    color: #6cb4e0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 0 10px rgba(108, 180, 224, 0.3);
+}
+
+.speaker-you #dialogue-text {
+    color: #e8f4fc;
+    border-left: 4px solid #6cb4e0;
+    padding-left: 1.2rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(108, 180, 224, 0.08) 0%, transparent 100%);
+}
+
+/* Elena - warm amber/gold, confident industry presence */
+.speaker-elena #character-name {
+    color: #f0a830;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 0 10px rgba(240, 168, 48, 0.3);
+}
+
+.speaker-elena #dialogue-text {
+    color: #fcf0d8;
+    border-left: 4px solid #f0a830;
+    padding-left: 1.2rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(240, 168, 48, 0.08) 0%, transparent 100%);
+}
+
+/* Priya - sharp teal, guarded edge */
+.speaker-priya #character-name {
+    color: #40c4b0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 0 10px rgba(64, 196, 176, 0.3);
+}
+
+.speaker-priya #dialogue-text {
+    color: #e0f8f4;
+    border-left: 4px solid #40c4b0;
+    padding-left: 1.2rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(64, 196, 176, 0.08) 0%, transparent 100%);
+}
+
+/* Sarah - warm purple, reliable colleague */
+.speaker-sarah #character-name {
+    color: #c49de0;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.speaker-sarah #dialogue-text {
+    color: #f0e8f8;
+    border-left: 3px solid #c49de0;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(196, 157, 224, 0.06) 0%, transparent 100%);
+}
+
+/* Phone - tech green, device/notification feel */
+.speaker-phone #character-name {
+    color: #50d050;
+    font-weight: 400;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.05rem;
+}
+
+.speaker-phone #dialogue-text {
+    color: #b0f0b0;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    background: rgba(30, 50, 30, 0.4);
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    border-left: 3px solid #50d050;
+}
+
+/* Officials (Chairman, Peters, Staffer) - formal blue-gray, institutional */
+.speaker-official #character-name {
+    color: #9098b0;
+    font-weight: 600;
+    letter-spacing: 0.15rem;
+    font-size: 0.95rem;
+}
+
+.speaker-official #dialogue-text {
+    color: #c8d0e0;
+    font-style: normal;
+}
+
+/* Minor characters (meeting voices, reps) - muted, background noise */
+.speaker-minor #character-name {
+    color: #808070;
+    font-weight: 400;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.speaker-minor #dialogue-text {
+    color: #a0a090;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Default characters - accent color */
+.speaker-character #character-name {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.speaker-character #dialogue-text {
+    color: var(--text-color);
+}
+
+#continue-indicator {
+    position: absolute;
+    bottom: 15px;
+    right: 20px;
+    color: var(--accent-color);
+    animation: bounce 1s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#continue-indicator.visible {
+    opacity: 1;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(5px);
+    }
+}
+
+/* Choice Container */
+#choice-container {
+    position: absolute;
+    bottom: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+#choice-container.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.choice-btn {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    color: var(--text-color);
+    background: var(--choice-bg);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    transform: translateX(-20px);
+    opacity: 0;
+    font-family: 'Georgia', serif;
+}
+
+.choice-btn.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.choice-btn:hover {
+    background: var(--choice-hover);
+    border-color: var(--accent-color);
+    padding-left: 2rem;
+}
+
+/* Screen Transition Overlay */
+#transition-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: 100;
+}
+
+#transition-overlay.active {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2.5rem;
+    }
+
+    .game-subtitle {
+        font-size: 1rem;
+    }
+
+    #dialogue-box {
+        width: 95%;
+        padding: 1rem 1.5rem;
+        min-height: 120px;
+    }
+
+    #dialogue-text {
+        font-size: 1rem;
+    }
+
+    #character-portrait {
+        width: 120px;
+        height: 168px;
+        left: 20px;
+        bottom: 180px;
+    }
+
+    #choice-container {
+        bottom: 180px;
+    }
+}

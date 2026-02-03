@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capitol Hill: The Markup</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="main-menu" class="screen active">
+            <div class="menu-content">
+                <h1 class="game-title">Capitol Hill</h1>
+                <h2 class="game-subtitle">The Markup</h2>
+                <div class="menu-buttons">
+                    <button id="start-btn" class="menu-btn">Start Game</button>
+                    <button id="continue-btn" class="menu-btn" disabled>Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <!-- Background -->
+            <div id="scene-background"></div>
+
+            <!-- Location Indicator -->
+            <div id="location-indicator"></div>
+
+            <!-- Character Portrait -->
+            <div id="character-portrait"></div>
+
+            <!-- Dialogue Box -->
+            <div id="dialogue-box">
+                <div id="character-name"></div>
+                <div id="dialogue-text"></div>
+                <div id="continue-indicator">▼</div>
+            </div>
+
+            <!-- Choice Container -->
+            <div id="choice-container"></div>
+        </div>
+    </div>
+
+    <script src="js/story.js"></script>
+    <script src="js/dialogue.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
