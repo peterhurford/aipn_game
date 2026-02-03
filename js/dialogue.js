@@ -70,26 +70,10 @@ class DialogueEngine {
             this.dialogueBox.classList.add('is-action');
         }
 
+        // Use centralized speaker style configuration
         const speaker = line.speaker || '';
-        if (speaker === 'Narrator') {
-            this.dialogueBox.classList.add('speaker-narrator');
-        } else if (speaker === 'You') {
-            this.dialogueBox.classList.add('speaker-you');
-        } else if (speaker === 'Elena') {
-            this.dialogueBox.classList.add('speaker-elena');
-        } else if (speaker === 'Priya') {
-            this.dialogueBox.classList.add('speaker-priya');
-        } else if (speaker === 'Sarah') {
-            this.dialogueBox.classList.add('speaker-sarah');
-        } else if (speaker === 'Phone') {
-            this.dialogueBox.classList.add('speaker-phone');
-        } else if (['Chairman', 'Peters', 'Staffer'].includes(speaker)) {
-            this.dialogueBox.classList.add('speaker-official');
-        } else if (['Industry Rep', 'Academic', 'Nonprofit Advocate', 'Facilitator', 'Voice 1', 'Voice 2', 'Voice 3', 'Voice 4'].includes(speaker)) {
-            this.dialogueBox.classList.add('speaker-minor');
-        } else {
-            this.dialogueBox.classList.add('speaker-character');
-        }
+        const speakerClass = getSpeakerClass(speaker);
+        this.dialogueBox.classList.add(speakerClass);
 
         // Handle portrait
         if (line.portrait) {

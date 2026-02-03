@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIPN Game - Storyboard Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 {
+            padding: 20px;
+            background: #0f3460;
+            color: #e94560;
+            font-size: 1.1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .scene-list {
+            padding: 10px;
+        }
+
+        .scene-item {
+            padding: 10px 15px;
+            margin: 5px 0;
+            background: #1a1a2e;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .scene-item:hover {
+            background: #0f3460;
+        }
+
+        .scene-item.active {
+            background: #0f3460;
+            border-left-color: #e94560;
+        }
+
+        .scene-item.has-choices {
+            border-left-color: #4ecca3;
+        }
+
+        .scene-item.is-ending {
+            border-left-color: #ffd700;
+        }
+
+        .scene-item.is-router {
+            border-left-color: #9b59b6;
+        }
+
+        .scene-item .scene-id {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .scene-item .scene-location {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .scene-item .scene-badges {
+            margin-top: 5px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #2a2a4a;
+        }
+
+        .badge.choices { background: #1a4a3a; color: #4ecca3; }
+        .badge.ending { background: #4a3a1a; color: #ffd700; }
+        .badge.router { background: #3a1a4a; color: #9b59b6; }
+        .badge.sets-flag { background: #1a3a4a; color: #3498db; }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #e94560;
+            font-size: 1.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #0f3460;
+            border: none;
+            color: #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #e94560;
+        }
+
+        .btn.active {
+            background: #e94560;
+        }
+
+        /* Content area */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Scene detail view */
+        .scene-detail {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .scene-header {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .scene-header h2 {
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .scene-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .scene-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Dialogue */
+        .dialogue-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dialogue-section h3 {
+            color: #4ecca3;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .dialogue-line {
+            padding: 12px 15px;
+            margin: 8px 0;
+            background: #1a1a2e;
+            border-radius: 8px;
+            border-left: 3px solid #0f3460;
+        }
+
+        .dialogue-line.narrator {
+            border-left-color: #888;
+            font-style: italic;
+        }
+
+        .dialogue-line.action {
+            border-left-color: #9b59b6;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .dialogue-line.player {
+            border-left-color: #3498db;
+        }
+
+        .dialogue-speaker {
+            font-weight: 600;
+            color: #e94560;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+
+        .dialogue-text {
+            line-height: 1.5;
+        }
+
+        /* Choices */
+        .choices-section {
+            background: #1a3a3a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #4ecca3;
+        }
+
+        .choices-section h3 {
+            color: #4ecca3;
+            margin-bottom: 15px;
+        }
+
+        .choice-item {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .choice-item:hover {
+            border-color: #4ecca3;
+        }
+
+        .choice-text {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .choice-meta {
+            font-size: 0.8rem;
+            color: #888;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .choice-meta .flag-set {
+            color: #3498db;
+        }
+
+        .choice-meta .next-scene {
+            color: #4ecca3;
+        }
+
+        /* Flow section */
+        .flow-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .flow-section h3 {
+            color: #e94560;
+            margin-bottom: 15px;
+        }
+
+        .flow-item {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #0f3460;
+            border-radius: 20px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .flow-item:hover {
+            background: #e94560;
+        }
+
+        .flow-item.incoming {
+            background: #1a4a3a;
+        }
+
+        .flow-item.outgoing {
+            background: #4a3a1a;
+        }
+
+        /* Flags section */
+        .flags-section {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .flags-section h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+
+        .flag-item {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #1a3a4a;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 0.8rem;
+        }
+
+        .flag-item.set-true {
+            color: #4ecca3;
+        }
+
+        .flag-item.set-false {
+            color: #e94560;
+        }
+
+        /* Graph view */
+        .graph-view {
+            display: none;
+            height: 100%;
+        }
+
+        .graph-view.active {
+            display: block;
+        }
+
+        .detail-view.active {
+            display: block;
+        }
+
+        /* Graph container */
+        #graph-container {
+            width: 100%;
+            height: 100%;
+            background: #1a1a2e;
+        }
+
+        /* Legend */
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #16213e;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            z-index: 100;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Simulator */
+        .simulator {
+            display: none;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .simulator.active {
+            display: block;
+        }
+
+        .sim-flags {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .sim-flags h3 {
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .flag-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .flag-toggle:last-child {
+            border-bottom: none;
+        }
+
+        .flag-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .flag-toggle label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .sim-result {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .sim-result h3 {
+            margin-bottom: 15px;
+            color: #4ecca3;
+        }
+
+        .path-step {
+            padding: 10px 15px;
+            background: #1a1a2e;
+            margin: 5px 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .path-step .step-num {
+            background: #0f3460;
+            color: #e94560;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .path-step .step-scene {
+            font-weight: 500;
+        }
+
+        .path-step .step-location {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .ending-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #4a3a1a;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+        }
+
+        .ending-result h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Scenes</h2>
+            <div class="scene-list" id="scene-list"></div>
+        </aside>
+
+        <main class="main">
+            <header class="header">
+                <h1>AIPN Game Storyboard</h1>
+                <div class="controls">
+                    <button class="btn active" id="btn-detail">Scene Detail</button>
+                    <button class="btn" id="btn-graph">Flow Graph</button>
+                    <button class="btn" id="btn-simulator">Path Simulator</button>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- Scene Detail View -->
+                <div class="detail-view active" id="detail-view">
+                    <div class="scene-detail" id="scene-detail">
+                        <p style="text-align: center; color: #888; margin-top: 100px;">
+                            Select a scene from the sidebar to view details
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Graph View -->
+                <div class="graph-view" id="graph-view">
+                    <div id="graph-container"></div>
+                </div>
+
+                <!-- Simulator View -->
+                <div class="simulator" id="simulator-view">
+                    <div class="sim-flags">
+                        <h3>Set Flags to Simulate Path</h3>
+                        <div id="flag-toggles"></div>
+                    </div>
+                    <div class="sim-result">
+                        <h3>Resulting Path</h3>
+                        <div id="sim-path"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="legend" id="legend" style="display: none;">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4ecca3;"></div>
+            <span>Has Choices</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffd700;"></div>
+            <span>Ending</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span>Conditional Router</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span>Sets Flags</span>
+        </div>
+    </div>
+
+    <!-- Load the story data -->
+    <script src="js/story.js"></script>
+
+    <script>
+        // Storyboard Viewer
+        class StoryboardViewer {
+            constructor(story) {
+                this.story = story;
+                this.scenes = story.scenes;
+                this.initialFlags = story.initialFlags;
+                this.currentScene = null;
+                this.currentView = 'detail';
+
+                this.init();
+            }
+
+            init() {
+                this.buildSceneList();
+                this.setupControls();
+                this.setupSimulator();
+
+                // Select first scene by default
+                const firstScene = Object.keys(this.scenes)[0];
+                this.selectScene(firstScene);
+            }
+
+            buildSceneList() {
+                const list = document.getElementById('scene-list');
+                list.innerHTML = '';
+
+                for (const [id, scene] of Object.entries(this.scenes)) {
+                    const item = document.createElement('div');
+                    item.className = 'scene-item';
+                    item.dataset.sceneId = id;
+
+                    // Add type classes
+                    if (scene.choices) item.classList.add('has-choices');
+                    if (scene.isEnding) item.classList.add('is-ending');
+                    if (scene.checkFlags || scene.checkClimaxChoice) item.classList.add('is-router');
+
+                    let badges = '';
+                    if (scene.choices) badges += '<span class="badge choices">Choices</span>';
+                    if (scene.isEnding) badges += `<span class="badge ending">${scene.endingType || 'Ending'}</span>`;
+                    if (scene.checkFlags || scene.checkClimaxChoice) badges += '<span class="badge router">Router</span>';
+                    if (scene.setFlags) badges += '<span class="badge sets-flag">Sets Flag</span>';
+
+                    item.innerHTML = `
+                        <div class="scene-id">${id}</div>
+                        <div class="scene-location">${scene.location || 'Router'}</div>
+                        ${badges ? `<div class="scene-badges">${badges}</div>` : ''}
+                    `;
+
+                    item.addEventListener('click', () => this.selectScene(id));
+                    list.appendChild(item);
+                }
+            }
+
+            selectScene(sceneId) {
+                this.currentScene = sceneId;
+
+                // Update sidebar selection
+                document.querySelectorAll('.scene-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.sceneId === sceneId);
+                });
+
+                this.renderSceneDetail(sceneId);
+            }
+
+            renderSceneDetail(sceneId) {
+                const scene = this.scenes[sceneId];
+                const container = document.getElementById('scene-detail');
+
+                if (!scene) {
+                    container.innerHTML = '<p>Scene not found</p>';
+                    return;
+                }
+
+                // Find incoming scenes
+                const incomingScenes = this.findIncomingScenes(sceneId);
+
+                // Find outgoing scenes
+                const outgoingScenes = this.findOutgoingScenes(scene);
+
+                let html = `
+                    <div class="scene-header">
+                        <h2>${sceneId}</h2>
+                        <div class="scene-meta">
+                            ${scene.location ? `<span>Location: ${scene.location}</span>` : ''}
+                            ${scene.background ? `<span>Background: ${scene.background}</span>` : ''}
+                            ${scene.isEnding ? `<span>Ending: ${scene.endingType}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Flow connections
+                html += `
+                    <div class="flow-section">
+                        <h3>Scene Flow</h3>
+                        <div>
+                            <strong>Incoming:</strong>
+                            ${incomingScenes.length ? incomingScenes.map(s =>
+                                `<span class="flow-item incoming" onclick="viewer.selectScene('${s}')">${s}</span>`
+                            ).join('') : '<span style="color: #888;"> Start</span>'}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>Outgoing:</strong>
+                            ${outgoingScenes.length ? outgoingScenes.map(s =>
+                                `<span class="flow-item outgoing" onclick="viewer.selectScene('${s}')">${s}</span>`
+                            ).join('') : '<span style="color: #888;"> End</span>'}
+                        </div>
+                    </div>
+                `;
+
+                // Router info
+                if (scene.checkFlags) {
+                    html += `
+                        <div class="flags-section">
+                            <h3>Conditional Router (checkFlags)</h3>
+                            <p style="color: #888; margin-bottom: 10px;">Routes to different endings based on flag state</p>
+                            <div>${this.renderEndingLogic()}</div>
+                        </div>
+                    `;
+                }
+
+                if (scene.checkClimaxChoice) {
+                    html += `
+                        <div class="flags-section">
+                            <h3>Climax Choice Router</h3>
+                            <p style="color: #888;">
+                                If <strong>trustedElena</strong> AND <strong>sharedWithPriya</strong>:
+                                <span class="flow-item outgoing" onclick="viewer.selectScene('climax_choice')">climax_choice</span>
+                            </p>
+                            <p style="color: #888; margin-top: 10px;">
+                                Otherwise:
+                                <span class="flow-item outgoing" onclick="viewer.selectScene('climax_no_leverage')">climax_no_leverage</span>
+                            </p>
+                        </div>
+                    `;
+                }
+
+                // Flags set by this scene
+                if (scene.setFlags) {
+                    html += `
+                        <div class="flags-section">
+                            <h3>Flags Set by This Scene</h3>
+                            <div>
+                                ${Object.entries(scene.setFlags).map(([flag, value]) =>
+                                    `<span class="flag-item ${value ? 'set-true' : 'set-false'}">${flag}: ${value}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Dialogue
+                if (scene.dialogue && scene.dialogue.length) {
+                    html += `
+                        <div class="dialogue-section">
+                            <h3>Dialogue (${scene.dialogue.length} lines)</h3>
+                            ${scene.dialogue.map(line => this.renderDialogueLine(line)).join('')}
+                        </div>
+                    `;
+                }
+
+                // Choices
+                if (scene.choices) {
+                    html += `
+                        <div class="choices-section">
+                            <h3>Player Choices</h3>
+                            ${scene.choices.map(choice => `
+                                <div class="choice-item" onclick="viewer.selectScene('${choice.nextDialogue}')">
+                                    <div class="choice-text">"${choice.text}"</div>
+                                    <div class="choice-meta">
+                                        ${choice.setFlags ? Object.entries(choice.setFlags).map(([f, v]) =>
+                                            `<span class="flag-set">${f}: ${v}</span>`
+                                        ).join(' ') : ''}
+                                        <span class="next-scene">-> ${choice.nextDialogue}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // Next scene
+                if (scene.nextScene && !scene.choices) {
+                    html += `
+                        <div class="flow-section">
+                            <h3>Next Scene</h3>
+                            <span class="flow-item outgoing" onclick="viewer.selectScene('${scene.nextScene}')">${scene.nextScene}</span>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+            }
+
+            renderDialogueLine(line) {
+                let classes = 'dialogue-line';
+                if (line.speaker === 'Narrator') classes += ' narrator';
+                if (line.isAction) classes += ' action';
+                if (line.speaker === 'You') classes += ' player';
+
+                return `
+                    <div class="${classes}">
+                        <div class="dialogue-speaker">${line.speaker}</div>
+                        <div class="dialogue-text">${line.text}</div>
+                    </div>
+                `;
+            }
+
+            renderEndingLogic() {
+                return `
+                    <div style="background: #1a1a2e; padding: 15px; border-radius: 8px; font-size: 0.85rem; line-height: 1.8;">
+                        <p><strong>Both allies + supported compromise:</strong>
+                            <span class="flow-item" onclick="viewer.selectScene('ending_a')">ending_a</span> or
+                            <span class="flow-item" onclick="viewer.selectScene('ending_a_spokeup')">ending_a_spokeup</span>
+                        </p>
+                        <p><strong>Both allies + opposed compromise:</strong>
+                            <span class="flow-item" onclick="viewer.selectScene('ending_b')">ending_b</span> or
+                            <span class="flow-item" onclick="viewer.selectScene('ending_b_spokeup')">ending_b_spokeup</span>
+                        </p>
+                        <p><strong>One ally (partial leverage):</strong>
+                            <span class="flow-item" onclick="viewer.selectScene('ending_b_partial')">ending_b_partial</span>
+                        </p>
+                        <p><strong>No allies:</strong>
+                            <span class="flow-item" onclick="viewer.selectScene('ending_c')">ending_c</span> or
+                            <span class="flow-item" onclick="viewer.selectScene('ending_c_spokeup')">ending_c_spokeup</span>
+                        </p>
+                    </div>
+                `;
+            }
+
+            findIncomingScenes(targetId) {
+                const incoming = [];
+                for (const [id, scene] of Object.entries(this.scenes)) {
+                    if (scene.nextScene === targetId) {
+                        incoming.push(id);
+                    }
+                    if (scene.choices) {
+                        for (const choice of scene.choices) {
+                            if (choice.nextDialogue === targetId) {
+                                incoming.push(id);
+                            }
+                        }
+                    }
+                }
+                return [...new Set(incoming)];
+            }
+
+            findOutgoingScenes(scene) {
+                const outgoing = [];
+                if (scene.nextScene) outgoing.push(scene.nextScene);
+                if (scene.choices) {
+                    for (const choice of scene.choices) {
+                        if (choice.nextDialogue) outgoing.push(choice.nextDialogue);
+                    }
+                }
+                return [...new Set(outgoing)];
+            }
+
+            setupControls() {
+                const btnDetail = document.getElementById('btn-detail');
+                const btnGraph = document.getElementById('btn-graph');
+                const btnSimulator = document.getElementById('btn-simulator');
+
+                btnDetail.addEventListener('click', () => this.showView('detail'));
+                btnGraph.addEventListener('click', () => this.showView('graph'));
+                btnSimulator.addEventListener('click', () => this.showView('simulator'));
+            }
+
+            showView(view) {
+                this.currentView = view;
+
+                // Update buttons
+                document.querySelectorAll('.controls .btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`btn-${view}`).classList.add('active');
+
+                // Update views
+                document.getElementById('detail-view').classList.toggle('active', view === 'detail');
+                document.getElementById('graph-view').classList.toggle('active', view === 'graph');
+                document.getElementById('simulator-view').classList.toggle('active', view === 'simulator');
+                document.getElementById('legend').style.display = view === 'graph' ? 'block' : 'none';
+
+                if (view === 'graph') {
+                    this.renderGraph();
+                }
+            }
+
+            renderGraph() {
+                const container = document.getElementById('graph-container');
+
+                // Build a simple text-based graph representation
+                let html = `
+                    <div style="padding: 30px; overflow: auto; height: 100%;">
+                        <h3 style="color: #e94560; margin-bottom: 20px;">Story Flow Graph</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+                `;
+
+                // Group scenes by their approximate position in the story
+                const groups = {
+                    'Start': ['intro'],
+                    'Elena Branch': ['the_filibuster', 'elena_trusted', 'elena_suspicious'],
+                    'Middle': ['stakeholder_meeting', 'stakeholder_speak', 'stakeholder_silent', 'coalition_call', 'coalition_intervene', 'coalition_silent'],
+                    'Priya Branch': ['think_tank', 'priya_ally', 'priya_cautious'],
+                    'Climax': ['markup_prep', 'markup_hearing', 'climax', 'climax_choice_check', 'climax_choice', 'climax_support', 'climax_oppose', 'climax_no_leverage'],
+                    'Endings': ['ending_check', 'ending_a', 'ending_a_spokeup', 'ending_b', 'ending_b_spokeup', 'ending_b_partial', 'ending_c', 'ending_c_spokeup']
+                };
+
+                for (const [groupName, sceneIds] of Object.entries(groups)) {
+                    html += `
+                        <div style="background: #16213e; padding: 20px; border-radius: 10px; min-width: 200px;">
+                            <h4 style="color: #4ecca3; margin-bottom: 15px; border-bottom: 1px solid #0f3460; padding-bottom: 10px;">${groupName}</h4>
+                    `;
+
+                    for (const id of sceneIds) {
+                        const scene = this.scenes[id];
+                        if (!scene) continue;
+
+                        let bgColor = '#1a1a2e';
+                        let borderColor = '#0f3460';
+
+                        if (scene.choices) borderColor = '#4ecca3';
+                        if (scene.isEnding) { bgColor = '#2a2a1a'; borderColor = '#ffd700'; }
+                        if (scene.checkFlags || scene.checkClimaxChoice) { bgColor = '#2a1a2a'; borderColor = '#9b59b6'; }
+
+                        const outgoing = this.findOutgoingScenes(scene);
+
+                        html += `
+                            <div style="background: ${bgColor}; border: 1px solid ${borderColor}; padding: 10px; border-radius: 6px; margin: 8px 0; cursor: pointer;" onclick="viewer.selectScene('${id}'); viewer.showView('detail');">
+                                <div style="font-weight: 600; font-size: 0.85rem;">${id}</div>
+                                ${outgoing.length ? `<div style="font-size: 0.7rem; color: #888; margin-top: 5px;">-> ${outgoing.join(', ')}</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                }
+
+                html += '</div></div>';
+                container.innerHTML = html;
+            }
+
+            setupSimulator() {
+                const togglesContainer = document.getElementById('flag-toggles');
+
+                // Create toggles for each flag
+                const flags = Object.keys(this.initialFlags);
+                togglesContainer.innerHTML = flags.map(flag => `
+                    <div class="flag-toggle">
+                        <input type="checkbox" id="flag-${flag}" data-flag="${flag}">
+                        <label for="flag-${flag}">${flag}</label>
+                    </div>
+                `).join('');
+
+                // Add change listeners
+                togglesContainer.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('change', () => this.simulatePath());
+                });
+
+                // Initial simulation
+                this.simulatePath();
+            }
+
+            simulatePath() {
+                // Get current flag state
+                const flags = {};
+                document.querySelectorAll('#flag-toggles input').forEach(input => {
+                    flags[input.dataset.flag] = input.checked;
+                });
+
+                // Simulate the path
+                const path = this.calculatePath(flags);
+
+                // Render the path
+                const pathContainer = document.getElementById('sim-path');
+                let html = '';
+
+                path.forEach((step, i) => {
+                    const scene = this.scenes[step];
+                    html += `
+                        <div class="path-step">
+                            <span class="step-num">${i + 1}</span>
+                            <div>
+                                <span class="step-scene">${step}</span>
+                                <span class="step-location">${scene?.location || ''}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Show ending
+                const lastScene = this.scenes[path[path.length - 1]];
+                if (lastScene?.isEnding) {
+                    html += `
+                        <div class="ending-result">
+                            <h4>${lastScene.endingType}</h4>
+                            <p>This is the ending you would reach with these flag settings.</p>
+                        </div>
+                    `;
+                }
+
+                pathContainer.innerHTML = html;
+            }
+
+            calculatePath(flags) {
+                const path = ['intro'];
+                let currentScene = 'intro';
+                const visited = new Set();
+
+                while (currentScene && !visited.has(currentScene)) {
+                    visited.add(currentScene);
+                    const scene = this.scenes[currentScene];
+
+                    if (!scene) break;
+                    if (scene.isEnding) break;
+
+                    // Handle routers
+                    if (scene.checkClimaxChoice) {
+                        if (flags.trustedElena && flags.sharedWithPriya) {
+                            currentScene = 'climax_choice';
+                        } else {
+                            currentScene = 'climax_no_leverage';
+                        }
+                        path.push(currentScene);
+                        continue;
+                    }
+
+                    if (scene.checkFlags) {
+                        // Determine ending
+                        let ending;
+                        if (flags.trustedElena && flags.sharedWithPriya) {
+                            if (flags.supportedCompromise) {
+                                ending = flags.spokeUp ? 'ending_a_spokeup' : 'ending_a';
+                            } else {
+                                ending = flags.spokeUp ? 'ending_b_spokeup' : 'ending_b';
+                            }
+                        } else if (flags.trustedElena || flags.sharedWithPriya) {
+                            ending = 'ending_b_partial';
+                        } else {
+                            ending = flags.spokeUp ? 'ending_c_spokeup' : 'ending_c';
+                        }
+                        path.push(ending);
+                        break;
+                    }
+
+                    // Handle choices - pick first choice that matches flags or just first
+                    if (scene.choices) {
+                        // For simulation, we pick based on flags
+                        let nextScene;
+                        if (currentScene === 'the_filibuster') {
+                            nextScene = flags.trustedElena ? 'elena_trusted' : 'elena_suspicious';
+                        } else if (currentScene === 'stakeholder_meeting') {
+                            nextScene = flags.spokeUp ? 'stakeholder_speak' : 'stakeholder_silent';
+                        } else if (currentScene === 'coalition_call') {
+                            nextScene = flags.spokeUp ? 'coalition_intervene' : 'coalition_silent';
+                        } else if (currentScene === 'think_tank') {
+                            nextScene = flags.sharedWithPriya ? 'priya_ally' : 'priya_cautious';
+                        } else if (currentScene === 'climax_choice') {
+                            nextScene = flags.supportedCompromise ? 'climax_support' : 'climax_oppose';
+                        } else {
+                            nextScene = scene.choices[0].nextDialogue;
+                        }
+                        currentScene = nextScene;
+                        path.push(currentScene);
+                        continue;
+                    }
+
+                    // Handle nextScene
+                    if (scene.nextScene) {
+                        currentScene = scene.nextScene;
+                        path.push(currentScene);
+                        continue;
+                    }
+
+                    break;
+                }
+
+                return path;
+            }
+        }
+
+        // Initialize
+        const viewer = new StoryboardViewer(STORY);
+    </script>
+</body>
+</html>

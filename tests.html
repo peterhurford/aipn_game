@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Logic Tests</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #00d4ff;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+        .summary {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+        .summary.all-passed {
+            border-left: 4px solid #00ff88;
+        }
+        .summary.has-failures {
+            border-left: 4px solid #ff4444;
+        }
+        .passed-count {
+            color: #00ff88;
+        }
+        .failed-count {
+            color: #ff4444;
+        }
+        .test-group {
+            margin: 20px 0;
+        }
+        .test-group h2 {
+            color: #ffd700;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            padding: 8px 12px;
+            margin: 4px 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-result.passed {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+        }
+        .test-result.failed {
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 3px solid #ff4444;
+        }
+        .test-icon {
+            font-size: 1.2em;
+        }
+        .test-name {
+            flex: 1;
+        }
+        .run-button {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .run-button:hover {
+            background: #00a8cc;
+        }
+        #results {
+            display: none;
+        }
+        .console-output {
+            background: #0a0a15;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+        }
+        .console-output .error {
+            color: #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Logic Tests</h1>
+    <p>Tests for the DRY refactoring of story logic.</p>
+
+    <button class="run-button" onclick="runTests()">Run Tests</button>
+
+    <div id="results">
+        <div id="summary" class="summary"></div>
+        <div id="test-results"></div>
+        <div class="console-output" id="console-output"></div>
+    </div>
+
+    <!-- Load game scripts -->
+    <script src="js/story.js"></script>
+    <script src="js/scene.js"></script>
+    <script src="js/dialogue.js"></script>
+    <script src="js/tests.js"></script>
+
+    <script>
+        // Capture console output
+        const consoleOutput = [];
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            consoleOutput.push({ type: 'log', message: args.join(' ') });
+            originalLog.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            consoleOutput.push({ type: 'error', message: args.join(' ') });
+            originalError.apply(console, args);
+        };
+
+        function runTests() {
+            consoleOutput.length = 0;
+            TestRunner.passed = 0;
+            TestRunner.failed = 0;
+            TestRunner.results = [];
+
+            const results = TestRunner.run();
+
+            // Show results section
+            document.getElementById('results').style.display = 'block';
+
+            // Update summary
+            const summaryEl = document.getElementById('summary');
+            summaryEl.className = 'summary ' + (results.failed === 0 ? 'all-passed' : 'has-failures');
+            summaryEl.innerHTML = `
+                <span class="passed-count">${results.passed} passed</span> |
+                <span class="failed-count">${results.failed} failed</span> |
+                ${results.passed + results.failed} total
+            `;
+
+            // Group results by test category
+            const groups = {};
+            let currentGroup = 'General';
+
+            for (const result of results.results) {
+                // Detect group from test name patterns
+                if (result.name.includes('LOCATIONS')) currentGroup = 'Location Registry';
+                else if (result.name.includes('maps to speaker')) currentGroup = 'Speaker Styles';
+                else if (result.name.includes('fragment') || result.name.includes('priyaDiscussion')) currentGroup = 'Dialogue Fragments';
+                else if (result.name.includes('->') || result.name.includes('router')) currentGroup = 'Routing Rules';
+                else if (result.name.includes('conditionalText') || result.name.includes('conditionalOnly')) currentGroup = 'Conditional Dialogue';
+                else if (result.name.includes('scene') || result.name.includes('ending_')) currentGroup = 'Scene Structure';
+                else if (result.name.includes('path') || result.name.includes('spokeUp')) currentGroup = 'Ending Paths';
+
+                if (!groups[currentGroup]) groups[currentGroup] = [];
+                groups[currentGroup].push(result);
+            }
+
+            // Render grouped results
+            const resultsEl = document.getElementById('test-results');
+            resultsEl.innerHTML = '';
+
+            for (const [groupName, tests] of Object.entries(groups)) {
+                const groupEl = document.createElement('div');
+                groupEl.className = 'test-group';
+                groupEl.innerHTML = `<h2>${groupName}</h2>`;
+
+                for (const test of tests) {
+                    const testEl = document.createElement('div');
+                    testEl.className = 'test-result ' + (test.passed ? 'passed' : 'failed');
+                    testEl.innerHTML = `
+                        <span class="test-icon">${test.passed ? '✓' : '✗'}</span>
+                        <span class="test-name">${test.name}</span>
+                    `;
+                    groupEl.appendChild(testEl);
+                }
+
+                resultsEl.appendChild(groupEl);
+            }
+
+            // Show console output
+            const consoleEl = document.getElementById('console-output');
+            consoleEl.innerHTML = consoleOutput
+                .map(entry => `<span class="${entry.type}">${entry.message}</span>`)
+                .join('\n');
+        }
+
+        // Auto-run on load
+        window.onload = runTests;
+    </script>
+</body>
+</html>

@@ -1,4 +1,127 @@
 // Story Data - All scenes, dialogue, and choices
+
+// Location registry - centralized location/background definitions
+const LOCATIONS = {
+    office: { location: 'AIPN Office', background: 'bg-office' },
+    officeCoalition: { location: 'AIPN Office - Coalition Call', background: 'bg-office' },
+    officeLate: { location: 'AIPN Office - Late Night', background: 'bg-office' },
+    officeSixMonths: { location: 'AIPN Office - Six Months Later', background: 'bg-office' },
+    officeThreeMonths: { location: 'AIPN Office - Three Months Later', background: 'bg-office' },
+    officeNextCongress: { location: 'AIPN Office - Next Congress', background: 'bg-office' },
+    bar: { location: 'The Filibuster Bar', background: 'bg-bar' },
+    conference: { location: 'Conference Room B-7', background: 'bg-office' },
+    thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
+    mall: { location: 'National Mall at Night', background: 'bg-mall' },
+    capitol: { location: 'Rayburn Building - Committee Room', background: 'bg-capitol' }
+};
+
+// Speaker style configuration - maps speakers to CSS classes
+const SPEAKER_STYLES = {
+    'Narrator': 'speaker-narrator',
+    'You': 'speaker-you',
+    'Elena': 'speaker-elena',
+    'Priya': 'speaker-priya',
+    'Sarah': 'speaker-sarah',
+    'Phone': 'speaker-phone'
+};
+
+const SPEAKER_GROUPS = {
+    'speaker-official': ['Chairman', 'Peters', 'Staffer'],
+    'speaker-minor': ['Industry Rep', 'Academic', 'Nonprofit Advocate', 'Facilitator', 'Voice 1', 'Voice 2', 'Voice 3', 'Voice 4']
+};
+
+// Get the CSS class for a speaker
+function getSpeakerClass(speaker) {
+    if (SPEAKER_STYLES[speaker]) {
+        return SPEAKER_STYLES[speaker];
+    }
+    for (const [className, speakers] of Object.entries(SPEAKER_GROUPS)) {
+        if (speakers.includes(speaker)) {
+            return className;
+        }
+    }
+    return 'speaker-character';
+}
+
+// Shared dialogue fragments - reusable dialogue blocks
+const DIALOGUE_FRAGMENTS = {
+    priyaDiscussion: [
+        {
+            speaker: 'You',
+            text: 'Someone told me to talk to Priya Sharma.',
+            portrait: null
+        },
+        {
+            speaker: 'Sarah',
+            text: "Priya? Good luck. She doesn't really... do meetings anymore.",
+            portrait: null
+        },
+        {
+            speaker: 'You',
+            text: 'What does she do?',
+            portrait: null
+        },
+        {
+            speaker: 'Sarah',
+            text: "Drinks, mostly. But she knows everyone. If she'll talk to you.",
+            portrait: null
+        }
+    ]
+};
+
+// Conditional routing rules for router scenes
+const ROUTING_RULES = {
+    climax_choice_check: {
+        rules: [
+            {
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya,
+                target: 'climax_choice'
+            }
+        ],
+        default: 'climax_no_leverage'
+    },
+    ending_check: {
+        rules: [
+            {
+                // Both allies + supported compromise = Pyrrhic Victory
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.supportedCompromise,
+                target: 'ending_a'
+            },
+            {
+                // Both allies + opposed compromise = Moral Victory
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.opposedCompromise,
+                target: 'ending_b'
+            },
+            {
+                // Both allies but no choice made (fallback) = Pyrrhic Victory
+                condition: (flags) => flags.trustedElena && flags.sharedWithPriya,
+                target: 'ending_a'
+            },
+            {
+                // One ally = Compromise (not enough leverage)
+                condition: (flags) => flags.trustedElena || flags.sharedWithPriya,
+                target: 'ending_b_partial'
+            }
+        ],
+        // No allies = Status Quo
+        default: 'ending_c'
+    }
+};
+
+// Route to the appropriate scene based on flags
+function routeScene(routerId, flags) {
+    const routing = ROUTING_RULES[routerId];
+    if (!routing) return null;
+
+    for (const rule of routing.rules) {
+        if (rule.condition(flags)) {
+            return rule.target;
+        }
+    }
+
+    return routing.default;
+}
+
 const STORY = {
     // Initial game state flags
     initialFlags: {
@@ -15,8 +138,7 @@ const STORY = {
     scenes: {
         intro: {
             id: 'intro',
-            location: 'AIPN Office',
-            background: 'bg-office',
+            ...LOCATIONS.office,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -100,8 +222,7 @@ const STORY = {
 
         the_filibuster: {
             id: 'the_filibuster',
-            location: 'The Filibuster Bar',
-            background: 'bg-bar',
+            ...LOCATIONS.bar,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -207,8 +328,7 @@ const STORY = {
 
         elena_trusted: {
             id: 'elena_trusted',
-            location: 'The Filibuster Bar',
-            background: 'bg-bar',
+            ...LOCATIONS.bar,
             dialogue: [
                 {
                     speaker: 'Elena',
@@ -274,8 +394,7 @@ const STORY = {
 
         elena_suspicious: {
             id: 'elena_suspicious',
-            location: 'The Filibuster Bar',
-            background: 'bg-bar',
+            ...LOCATIONS.bar,
             dialogue: [
                 {
                     speaker: 'Elena',
@@ -325,8 +444,7 @@ const STORY = {
 
         stakeholder_meeting: {
             id: 'stakeholder_meeting',
-            location: 'Conference Room B-7',
-            background: 'bg-office',
+            ...LOCATIONS.conference,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -385,8 +503,7 @@ const STORY = {
 
         stakeholder_speak: {
             id: 'stakeholder_speak',
-            location: 'Conference Room B-7',
-            background: 'bg-office',
+            ...LOCATIONS.conference,
             dialogue: [
                 {
                     speaker: 'You',
@@ -415,8 +532,7 @@ const STORY = {
 
         stakeholder_silent: {
             id: 'stakeholder_silent',
-            location: 'Conference Room B-7',
-            background: 'bg-office',
+            ...LOCATIONS.conference,
             dialogue: [
                 {
                     speaker: 'Facilitator',
@@ -435,8 +551,7 @@ const STORY = {
 
         coalition_call: {
             id: 'coalition_call',
-            location: 'AIPN Office - Coalition Call',
-            background: 'bg-office',
+            ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
                     speaker: 'Voice 1',
@@ -511,8 +626,7 @@ const STORY = {
 
         coalition_intervene: {
             id: 'coalition_intervene',
-            location: 'AIPN Office - Coalition Call',
-            background: 'bg-office',
+            ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
                     speaker: 'You',
@@ -545,34 +659,14 @@ const STORY = {
                     text: 'I need a drink.',
                     portrait: null
                 },
-                {
-                    speaker: 'You',
-                    text: 'Someone told me to talk to Priya Sharma.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Priya? Good luck. She doesn\'t really... do meetings anymore.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'What does she do?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Drinks, mostly. But she knows everyone. If she\'ll talk to you.',
-                    portrait: null
-                }
+                ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
             nextScene: 'think_tank'
         },
 
         coalition_silent: {
             id: 'coalition_silent',
-            location: 'AIPN Office - Coalition Call',
-            background: 'bg-office',
+            ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
                     speaker: 'Sarah',
@@ -596,34 +690,14 @@ const STORY = {
                     text: 'I need a drink.',
                     portrait: null
                 },
-                {
-                    speaker: 'You',
-                    text: 'Someone told me to talk to Priya Sharma.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Priya? Good luck. She doesn\'t really... do meetings anymore.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'What does she do?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Drinks, mostly. But she knows everyone. If she\'ll talk to you.',
-                    portrait: null
-                }
+                ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
             nextScene: 'think_tank'
         },
 
         think_tank: {
             id: 'think_tank',
-            location: 'Priya\'s Office',
-            background: 'bg-thinktank',
+            ...LOCATIONS.thinktank,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -726,8 +800,7 @@ const STORY = {
 
         priya_ally: {
             id: 'priya_ally',
-            location: 'Priya\'s Office',
-            background: 'bg-thinktank',
+            ...LOCATIONS.thinktank,
             dialogue: [
                 {
                     speaker: 'Priya',
@@ -816,8 +889,7 @@ const STORY = {
 
         priya_cautious: {
             id: 'priya_cautious',
-            location: 'Priya\'s Office',
-            background: 'bg-thinktank',
+            ...LOCATIONS.thinktank,
             dialogue: [
                 {
                     speaker: 'Priya',
@@ -841,8 +913,7 @@ const STORY = {
 
         markup_prep: {
             id: 'markup_prep',
-            location: 'AIPN Office - Late Night',
-            background: 'bg-office',
+            ...LOCATIONS.officeLate,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -901,8 +972,7 @@ const STORY = {
 
         markup_hearing: {
             id: 'markup_hearing',
-            location: 'Rayburn Building - Committee Room',
-            background: 'bg-capitol',
+            ...LOCATIONS.capitol,
             dialogue: [
                 {
                     speaker: 'Chairman',
@@ -945,8 +1015,7 @@ const STORY = {
 
         climax: {
             id: 'climax',
-            location: 'National Mall at Night',
-            background: 'bg-mall',
+            ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -985,14 +1054,14 @@ const STORY = {
         // Route based on whether player has enough allies to matter
         climax_choice_check: {
             id: 'climax_choice_check',
-            checkClimaxChoice: true
+            isRouter: true,
+            routerId: 'climax_choice_check'
         },
 
         // Only shown if you have both allies
         climax_choice: {
             id: 'climax_choice',
-            location: 'National Mall at Night',
-            background: 'bg-mall',
+            ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1021,8 +1090,7 @@ const STORY = {
 
         climax_support: {
             id: 'climax_support',
-            location: 'National Mall at Night',
-            background: 'bg-mall',
+            ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'You',
@@ -1040,8 +1108,7 @@ const STORY = {
 
         climax_oppose: {
             id: 'climax_oppose',
-            location: 'National Mall at Night',
-            background: 'bg-mall',
+            ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'You',
@@ -1065,8 +1132,7 @@ const STORY = {
         // Shown if you don't have both allies - you don't have enough leverage for the choice to matter
         climax_no_leverage: {
             id: 'climax_no_leverage',
-            location: 'National Mall at Night',
-            background: 'bg-mall',
+            ...LOCATIONS.mall,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1095,14 +1161,14 @@ const STORY = {
         // Ending Router
         ending_check: {
             id: 'ending_check',
-            checkFlags: true
+            isRouter: true,
+            routerId: 'ending_check'
         },
 
         // Ending A: Pyrrhic Victory - supported compromise, bill passes but hollow
         ending_a: {
             id: 'ending_a',
-            location: 'AIPN Office - Six Months Later',
-            background: 'bg-office',
+            ...LOCATIONS.officeSixMonths,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1123,6 +1189,7 @@ const STORY = {
                 {
                     speaker: 'Sarah',
                     text: 'We won. Technically.',
+                    conditionalText: { spokeUp: 'We won. Technically. And people noticed you pushing back.' },
                     portrait: null
                 },
                 {
@@ -1138,11 +1205,13 @@ const STORY = {
                 {
                     speaker: 'Priya',
                     text: '"It\'s something. It\'s not nothing. That\'s... something."',
+                    conditionalText: { spokeUp: '"Jenny says you made an impression. That matters for next time."' },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
                     text: 'Your desk is already covered in new briefs. The Senate version. The implementation regs. MindScale\'s comment letter.',
+                    conditionalText: { spokeUp: 'Your desk is already covered in new briefs. The Senate version. The implementation regs.' },
                     portrait: null
                 },
                 {
@@ -1160,73 +1229,12 @@ const STORY = {
             endingType: 'The Pyrrhic Victory'
         },
 
-        // Ending A - Spoke up variant
-        ending_a_spokeup: {
-            id: 'ending_a_spokeup',
-            location: 'AIPN Office - Six Months Later',
-            background: 'bg-office',
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act passes the House. 231 to 204.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '"Mandatory testing" became "encouraged to consider." "Required disclosure" became "voluntary transparency."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She drops a bottle of champagne on your desk.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'We won. Technically. And people noticed you pushing back.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your phone buzzes.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Elena',
-                    text: '"Drinks? I need to complain about how badly we lost."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"Jenny says you made an impression. That matters for next time."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your desk is already covered in new briefs. The Senate version. The implementation regs.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Ready for round two?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Pyrrhic Victory'
-        },
+        // ending_a_spokeup now handled via conditionalText in ending_a
 
         // Ending B: Moral Victory - opposed compromise on principle, bill dies
         ending_b: {
             id: 'ending_b',
-            location: 'AIPN Office - Three Months Later',
-            background: 'bg-office',
+            ...LOCATIONS.officeThreeMonths,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1245,8 +1253,22 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Doesn\'t matter. That\'s the story now.',
+                    text: "Doesn't matter. That's the story now.",
+                    conditionalText: { spokeUp: "Doesn't matter. That's the story now. At least you spoke up." },
                     portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Did it matter?',
+                    portrait: null,
+                    conditionalOnly: 'spokeUp'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She shrugs.',
+                    portrait: null,
+                    isAction: true,
+                    conditionalOnly: 'spokeUp'
                 },
                 {
                     speaker: 'Narrator',
@@ -1256,11 +1278,13 @@ const STORY = {
                 {
                     speaker: 'Elena',
                     text: '"I get why you did it. Not sure it was the right call, but I get it."',
+                    conditionalText: { spokeUp: '"I get why you did it. Not sure it was the right call."' },
                     portrait: null
                 },
                 {
                     speaker: 'Priya',
                     text: '"New bill next session. Same fight. You ready to do this again?"',
+                    conditionalText: { spokeUp: '"New bill next session. Same fight."' },
                     portrait: null
                 },
                 {
@@ -1271,11 +1295,12 @@ const STORY = {
                 {
                     speaker: 'Sarah',
                     text: 'Coalition call in ten.',
-                    portrait: null
+                    portrait: null,
+                    conditionalOnly: '!spokeUp'
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'At least you can live with yourself. That\'s not nothing. It\'s also not much.',
+                    text: "At least you can live with yourself. That's not nothing. It's also not much.",
                     portrait: null
                 },
                 {
@@ -1288,83 +1313,12 @@ const STORY = {
             endingType: 'The Moral Victory'
         },
 
-        // Ending B - Spoke up variant
-        ending_b_spokeup: {
-            id: 'ending_b_spokeup',
-            location: 'AIPN Office - Three Months Later',
-            background: 'bg-office',
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act dies on the floor. You helped kill it.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'MindScale put out a statement "thanking advocates for their principled stand against flawed legislation."',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'That\'s not why we—',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Doesn\'t matter. That\'s the story now. At least you spoke up.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'Did it matter?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She shrugs.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your phone buzzes.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Elena',
-                    text: '"I get why you did it. Not sure it was the right call."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"New bill next session. Same fight."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You look at the stack of briefs on your desk. The same briefs. New dates.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'At least you can live with yourself. That\'s not nothing. It\'s also not much.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Moral Victory'
-        },
+        // ending_b_spokeup now handled via conditionalText in ending_b
 
         // Ending B Partial: One ally - not enough leverage
         ending_b_partial: {
             id: 'ending_b_partial',
-            location: 'AIPN Office - Three Months Later',
-            background: 'bg-office',
+            ...LOCATIONS.officeThreeMonths,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1414,8 +1368,7 @@ const STORY = {
         // Ending C: Status Quo - no allies, bill dies
         ending_c: {
             id: 'ending_c',
-            location: 'AIPN Office - Next Congress',
-            background: 'bg-office',
+            ...LOCATIONS.officeNextCongress,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1425,7 +1378,20 @@ const STORY = {
                 {
                     speaker: 'Sarah',
                     text: 'New Congress, new bill. Same language.',
+                    conditionalText: { spokeUp: 'New Congress, new bill. Same language. At least you spoke up.' },
                     portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Did anyone hear?',
+                    portrait: null,
+                    conditionalOnly: 'spokeUp'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'I did.',
+                    portrait: null,
+                    conditionalOnly: 'spokeUp'
                 },
                 {
                     speaker: 'Narrator',
@@ -1440,58 +1406,8 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: 'You never did get that drink.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Coalition call in ten.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '— THE END —',
-                    portrait: null
-                }
-            ],
-            isEnding: true,
-            endingType: 'The Status Quo'
-        },
-
-        // Ending C - Spoke up variant
-        ending_c_spokeup: {
-            id: 'ending_c_spokeup',
-            location: 'AIPN Office - Next Congress',
-            background: 'bg-office',
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act dies on the floor. "Tabled for further consideration."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'New Congress, new bill. Same language. At least you spoke up.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'Did anyone hear?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'I did.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Your phone buzzes. LinkedIn notification.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Phone',
-                    text: '"Elena Vance has a new position: VP of Policy, Prometheus."',
-                    portrait: null
+                    portrait: null,
+                    conditionalOnly: '!spokeUp'
                 },
                 {
                     speaker: 'Sarah',
@@ -1507,5 +1423,7 @@ const STORY = {
             isEnding: true,
             endingType: 'The Status Quo'
         }
+
+        // ending_c_spokeup now handled via conditionalText in ending_c
     }
 };

@@ -26,22 +26,52 @@ class SceneManager {
             return;
         }
 
-        // Handle ending check scene
-        if (scene.checkFlags) {
-            this.determineEnding();
-            return;
-        }
-
-        // Handle climax choice routing
-        if (scene.checkClimaxChoice) {
-            this.routeClimaxChoice();
+        // Handle router scenes using the unified routing system
+        if (scene.isRouter && scene.routerId) {
+            const targetScene = routeScene(scene.routerId, this.gameFlags);
+            if (targetScene) {
+                this.loadScene(targetScene);
+            }
             return;
         }
 
         this.currentScene = scene;
 
+        // Process conditional dialogue before transitioning
+        const processedScene = this.processConditionalDialogue(scene);
+
         // Transition to new scene
-        this.transitionToScene(scene);
+        this.transitionToScene(processedScene);
+    }
+
+    // Process conditional dialogue based on game flags
+    processConditionalDialogue(scene) {
+        if (!scene.dialogue) return scene;
+
+        const processedDialogue = scene.dialogue
+            .filter(line => {
+                // Filter out lines that only appear under certain conditions
+                if (line.conditionalOnly) {
+                    const isNegated = line.conditionalOnly.startsWith('!');
+                    const flagName = isNegated ? line.conditionalOnly.slice(1) : line.conditionalOnly;
+                    const flagValue = this.gameFlags[flagName];
+                    return isNegated ? !flagValue : flagValue;
+                }
+                return true;
+            })
+            .map(line => {
+                // Apply conditional text replacements
+                if (line.conditionalText) {
+                    for (const [flagName, altText] of Object.entries(line.conditionalText)) {
+                        if (this.gameFlags[flagName]) {
+                            return { ...line, text: altText };
+                        }
+                    }
+                }
+                return line;
+            });
+
+        return { ...scene, dialogue: processedDialogue };
     }
 
     // Handle scene transition with fade
@@ -114,50 +144,8 @@ class SceneManager {
         }
     }
 
-    // Route to climax choice based on allies
-    routeClimaxChoice() {
-        const { trustedElena, sharedWithPriya } = this.gameFlags;
-
-        // Only get the meaningful choice if you have both allies
-        if (trustedElena && sharedWithPriya) {
-            this.loadScene('climax_choice');
-        } else {
-            this.loadScene('climax_no_leverage');
-        }
-    }
-
-    // Determine which ending based on flags
-    determineEnding() {
-        const { trustedElena, sharedWithPriya, supportedCompromise, opposedCompromise, spokeUp } = this.gameFlags;
-
-        let baseEnding;
-
-        // Both allies = you get to choose
-        if (trustedElena && sharedWithPriya) {
-            if (supportedCompromise) {
-                baseEnding = 'ending_a'; // Pyrrhic victory - passed but gutted
-            } else if (opposedCompromise) {
-                baseEnding = 'ending_b'; // Moral victory - killed it on principle
-            } else {
-                baseEnding = 'ending_a'; // Default to A if somehow neither flag set
-            }
-        }
-        // One ally = not enough leverage, bill passes without you mattering
-        else if (trustedElena || sharedWithPriya) {
-            baseEnding = 'ending_b_partial'; // Partial - you tried but couldn't swing it
-        }
-        // No allies = total failure
-        else {
-            baseEnding = 'ending_c';
-        }
-
-        // Add flavor suffix for spokeUp
-        if (spokeUp && baseEnding !== 'ending_b_partial') {
-            this.loadScene(baseEnding + '_spokeup');
-        } else {
-            this.loadScene(baseEnding);
-        }
-    }
+    // Note: Routing logic has been moved to ROUTING_RULES in story.js
+    // and is handled by the unified routeScene() function
 
     // Show ending screen
     showEndingScreen(endingType) {
