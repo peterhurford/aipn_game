@@ -359,7 +359,7 @@ const TestRunner = {
             'Markup shows Elena\'s intel paying off (conditionally)'
         );
 
-        // PRIYA: Markup should show her votes paying off (Margaret Chen)
+        // PRIYA: Markup should show her votes paying off (Senator Chen)
         const priyaLine = markup.dialogue.find(d => d.speaker === 'Priya' && d.conditionalOnly === 'sharedWithPriya');
         this.assert(
             priyaLine !== undefined,
