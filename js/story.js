@@ -1053,14 +1053,14 @@ const STORY = {
                 },
                 {
                     speaker: 'Chairman',
-                    text: 'The amendment passes. 12-10.',
-                    conditionalText: { sharedWithPriya: 'The amendment passes. 11-11. The chair votes aye to break the tie.' },
+                    text: 'The amendment passes. 13-9.',
+                    conditionalText: { sharedWithPriya: 'The amendment passes. 12-10.' },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Two votes.',
-                    conditionalText: { sharedWithPriya: 'One vote. The chair\'s vote.' },
+                    text: 'Four votes.',
+                    conditionalText: { sharedWithPriya: 'Two votes. Jenny Chen made a difference.' },
                     portrait: null
                 },
                 {
@@ -1188,7 +1188,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Jenny came through. Amendment 7 died on the floor. 11-11, and the chair didn\'t break the tie this time."',
+                    text: '"Jenny came through. Amendment 7 failed in committee. 11-11, no majority."',
                     portrait: null
                 },
                 {
