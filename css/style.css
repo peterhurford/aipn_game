@@ -18,6 +18,10 @@
     --paper-white: #f5f5f0;
 }
 
+html {
+    font-size: 140%;
+}
+
 body {
     font-family: 'Georgia', 'Times New Roman', serif;
     background-color: #1a1c18;
