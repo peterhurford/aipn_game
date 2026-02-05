@@ -339,7 +339,7 @@ const STORY = {
             ],
             choices: [
                 {
-                    text: 'Why are you telling me this?',
+                    text: 'You\'re right. We need people on the inside.',
                     setFlags: { trustedElena: true },
                     nextDialogue: 'elena_trusted'
                 },
@@ -389,7 +389,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Look, I can tell you which amendments are actually killable and which ones we\'d let through. Where the real decisions get made.',
+                    text: 'Amendments 3 through 6? We\'ll let those pass—makes it look like we\'re compromising. The real play is Amendment 7. That\'s where the testing requirements get gutted.',
                     portrait: 'portrait-elena'
                 },
                 {
@@ -656,7 +656,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'He shakes your hand a little too eagerly and disappears back into the building.',
+                    text: 'He nods, genuinely grateful, and heads back inside.',
                     portrait: null
                 }
             ],
@@ -1086,33 +1086,33 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: 'Your phone buzzes.',
-                    portrait: null
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Elena',
-                    text: '"They\'ll sacrifice Amendments 3-6 to get 7 through. Focus your fire there."',
-                    portrait: null
+                    text: '"Peters is whipping votes for Amendment 7. He thinks he has 13. You need one more no."',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Sarah',
                     text: 'She reads over your shoulder.',
                     portrait: null,
-                    isAction: true
+                    isAction: true,
+                    conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Is that... helpful intel from a lobbyist?',
-                    portrait: null
+                    text: 'Your lobbyist friend again?',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'You',
-                    text: 'I think so.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Weird.',
-                    portrait: null
+                    text: 'She\'s not my friend. But she\'s useful.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
                 }
             ],
             nextScene: 'elena_check_router'
@@ -1135,38 +1135,39 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'I just got a very interesting call from Congressman Davis\'s office.',
-                    portrait: 'portrait-elena'
-                },
-                {
-                    speaker: 'You',
-                    text: 'Elena, I—',
-                    portrait: null
-                },
-                {
-                    speaker: 'Elena',
-                    text: 'They wanted to know how I knew about the amendment strategy. Specifically mentioned "someone on the inside."',
+                    text: 'Word\'s going around the committee that someone knows about the amendment strategy. My boss just asked me if I\'d been "talking to advocacy groups."',
                     portrait: 'portrait-elena'
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Her voice is ice.',
+                    text: 'She pauses.',
                     portrait: 'portrait-elena',
                     isAction: true
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Do you have any idea how many years I\'ve spent building trust on the Hill?',
+                    text: 'I told one person about that strategy. You.',
                     portrait: 'portrait-elena'
                 },
                 {
                     speaker: 'You',
-                    text: 'I didn\'t think—',
+                    text: 'Elena, I only mentioned it to—',
                     portrait: null
                 },
                 {
                     speaker: 'Elena',
-                    text: 'No. You didn\'t.',
+                    text: 'It doesn\'t matter who you told. They told someone. Who told someone. That\'s how this town works.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'Her voice is quiet.',
+                    portrait: 'portrait-elena',
+                    isAction: true
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'Do you have any idea how careful I have to be?',
                     portrait: 'portrait-elena'
                 },
                 {
@@ -1334,17 +1335,17 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The bill died in committee anyway. Not enough votes. Not enough momentum.',
+                    text: 'You didn\'t know the players. You didn\'t have leverage. You weren\'t even in the conversation.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You weren\'t at the table. You didn\'t know the players. You didn\'t have leverage.',
+                    text: 'Sarah\'s text sits unanswered. What would you even tell leadership? You have nothing to offer.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'It would have died with or without you.',
+                    text: 'The bill will pass or die on the floor. Either way, it has nothing to do with you.',
                     portrait: null
                 }
             ],
@@ -1559,7 +1560,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act dies in committee. "Tabled for further consideration."',
+                    text: 'The Frontier AI Safety Act passes committee. Then nothing. No floor vote. Not enough support. "Tabled for further consideration."',
                     portrait: null
                 },
                 {
