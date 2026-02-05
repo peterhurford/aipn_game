@@ -71,16 +71,27 @@ const DIALOGUE_FRAGMENTS = {
 
 // Conditional routing rules for router scenes
 const ROUTING_RULES = {
+    elena_check: {
+        rules: [
+            {
+                // Trusted both Elena and the staffer = Elena gets burned
+                condition: (flags) => flags.trustedElena && flags.trustedStaffer,
+                target: 'elena_burned'
+            }
+        ],
+        // Otherwise proceed normally to markup
+        default: 'markup_hearing'
+    },
     climax_choice_check: {
         rules: [
             {
-                // Both allies = full negotiation option
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya,
+                // Both allies (Elena not burned) = full negotiation option
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya,
                 target: 'climax_both'
             },
             {
-                // Elena only = you understand but can't act
-                condition: (flags) => flags.trustedElena,
+                // Elena only (not burned) = you understand but can't act
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned,
                 target: 'climax_elena_only'
             },
             {
@@ -89,24 +100,24 @@ const ROUTING_RULES = {
                 target: 'climax_priya_only'
             }
         ],
-        // Neither = you're irrelevant
+        // Neither (or Elena burned) = you're irrelevant
         default: 'climax_neither'
     },
     ending_check: {
         rules: [
             {
-                // Both allies + negotiated = Incremental victory
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.negotiated,
+                // Both allies (Elena not burned) + negotiated = Incremental victory
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.negotiated,
                 target: 'ending_incremental'
             },
             {
-                // Both allies + opposed = you had leverage but walked away
-                condition: (flags) => flags.trustedElena && flags.sharedWithPriya && flags.walkedAway,
+                // Both allies (Elena not burned) + opposed = you had leverage but walked away
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.walkedAway,
                 target: 'ending_walked_away'
             },
             {
-                // Elena only = Cassandra (you saw it coming)
-                condition: (flags) => flags.trustedElena,
+                // Elena only (not burned) = Cassandra (you saw it coming)
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned,
                 target: 'ending_cassandra'
             },
             {
@@ -115,7 +126,7 @@ const ROUTING_RULES = {
                 target: 'ending_pyrrhic'
             }
         ],
-        // No allies = Status Quo (bill died, you were irrelevant)
+        // No allies (or Elena burned without Priya) = Status Quo (bill died, you were irrelevant)
         default: 'ending_status_quo'
     }
 };
@@ -139,6 +150,8 @@ const STORY = {
     initialFlags: {
         trustedElena: false,
         sharedWithPriya: false,
+        trustedStaffer: false,
+        elenaBurned: false,
         foundEvidence: false,
         knowsTheTruth: false,
         spokeUp: false,
@@ -539,7 +552,7 @@ const STORY = {
                 }
             ],
             setFlags: { survivedStakeholderMeeting: true },
-            nextScene: 'coalition_call'
+            nextScene: 'staffer_approach'
         },
 
         stakeholder_silent: {
@@ -558,6 +571,124 @@ const STORY = {
                 }
             ],
             setFlags: { survivedStakeholderMeeting: true },
+            nextScene: 'staffer_approach'
+        },
+
+        // Staffer approaches after stakeholder meeting
+        staffer_approach: {
+            id: 'staffer_approach',
+            ...LOCATIONS.conference,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'On your way out, a young staffer catches up to you.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'Hey—you\'re with AIPN, right? I work for Congressman Davis on the committee.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'That\'s right.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'Look, I shouldn\'t be saying this, but... some of us actually want the bill to work. The real bill, not the watered-down version.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'If you have any intel on what industry is planning—amendments, vote counts, anything—I could make sure it gets to the right people.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'He seems earnest. But then, everyone in this town seems earnest.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Share what Elena told you about the amendments',
+                    setFlags: { trustedStaffer: true },
+                    nextDialogue: 'staffer_trust',
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    text: 'Tell him you\'ll keep your eyes open',
+                    nextDialogue: 'staffer_dismiss'
+                }
+            ]
+        },
+
+        staffer_trust: {
+            id: 'staffer_trust',
+            ...LOCATIONS.conference,
+            dialogue: [
+                {
+                    speaker: 'You',
+                    text: 'I heard Amendment 7 is the real target. Amendments 3 through 6 are sacrificial—industry will let them go to get 7 through.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'His eyes widen.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'That\'s... that\'s exactly the kind of thing we need. Do you have a source for this?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Someone on the inside. I can\'t say more.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'Of course, of course. This is really helpful. I\'ll make sure it gets to Congressman Davis.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'He shakes your hand a little too eagerly and disappears back into the building.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_call'
+        },
+
+        staffer_dismiss: {
+            id: 'staffer_dismiss',
+            ...LOCATIONS.conference,
+            dialogue: [
+                {
+                    speaker: 'You',
+                    text: 'I appreciate the offer. I\'ll let you know if I hear anything useful.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'He nods, a little disappointed.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Staffer',
+                    text: 'Sure. Here\'s my card. The offer stands.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You pocket the card. You\'ll probably never use it.',
+                    portrait: null
+                }
+            ],
             nextScene: 'coalition_call'
         },
 
@@ -984,6 +1115,89 @@ const STORY = {
                     portrait: null
                 }
             ],
+            nextScene: 'elena_check_router'
+        },
+
+        elena_check_router: {
+            id: 'elena_check_router',
+            isRouter: true,
+            routerId: 'elena_check'
+        },
+
+        elena_burned: {
+            id: 'elena_burned',
+            ...LOCATIONS.officeLate,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone rings. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'I just got a very interesting call from Congressman Davis\'s office.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'You',
+                    text: 'Elena, I—',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'They wanted to know how I knew about the amendment strategy. Specifically mentioned "someone on the inside."',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'Her voice is ice.',
+                    portrait: 'portrait-elena',
+                    isAction: true
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'Do you have any idea how many years I\'ve spent building trust on the Hill?',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'You',
+                    text: 'I didn\'t think—',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'No. You didn\'t.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'She hangs up.',
+                    portrait: 'portrait-elena',
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She looks at you.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Was that...',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Yeah. I burned our source.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Sarah doesn\'t say anything. She doesn\'t have to.',
+                    portrait: null
+                }
+            ],
+            setFlags: { elenaBurned: true },
             nextScene: 'markup_hearing'
         },
 

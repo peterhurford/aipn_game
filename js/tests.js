@@ -145,14 +145,36 @@ const TestRunner = {
     testRoutingRules() {
         console.log('\n--- Routing Rules Tests ---');
 
+        // Elena check routing - staffer betrayal mechanic
+        this.assertEqual(
+            routeScene('elena_check', { trustedElena: true, trustedStaffer: true }),
+            'elena_burned',
+            'Trusted both Elena and staffer -> elena_burned'
+        );
+        this.assertEqual(
+            routeScene('elena_check', { trustedElena: true, trustedStaffer: false }),
+            'markup_hearing',
+            'Trusted Elena but not staffer -> markup_hearing (safe)'
+        );
+        this.assertEqual(
+            routeScene('elena_check', { trustedElena: false, trustedStaffer: true }),
+            'markup_hearing',
+            'Trusted staffer but not Elena -> markup_hearing (nothing to burn)'
+        );
+        this.assertEqual(
+            routeScene('elena_check', { trustedElena: false, trustedStaffer: false }),
+            'markup_hearing',
+            'Trusted neither -> markup_hearing'
+        );
+
         // Climax choice routing - four distinct paths
         this.assertEqual(
-            routeScene('climax_choice_check', { trustedElena: true, sharedWithPriya: true }),
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true }),
             'climax_both',
             'Both allies -> climax_both (full negotiation)'
         );
         this.assertEqual(
-            routeScene('climax_choice_check', { trustedElena: true, sharedWithPriya: false }),
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: false }),
             'climax_elena_only',
             'Elena only -> climax_elena_only (understand but cant act)'
         );
@@ -167,19 +189,31 @@ const TestRunner = {
             'No allies -> climax_neither (irrelevant)'
         );
 
+        // Elena burned negates her benefit in climax
+        this.assertEqual(
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: true, sharedWithPriya: true }),
+            'climax_priya_only',
+            'Elena burned + Priya -> climax_priya_only (Elena negated)'
+        );
+        this.assertEqual(
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: true, sharedWithPriya: false }),
+            'climax_neither',
+            'Elena burned + no Priya -> climax_neither (Elena negated)'
+        );
+
         // Ending routing - five distinct endings
         this.assertEqual(
-            routeScene('ending_check', { trustedElena: true, sharedWithPriya: true, negotiated: true }),
+            routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, negotiated: true }),
             'ending_incremental',
             'Both + negotiated -> ending_incremental'
         );
         this.assertEqual(
-            routeScene('ending_check', { trustedElena: true, sharedWithPriya: true, walkedAway: true }),
+            routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, walkedAway: true }),
             'ending_walked_away',
             'Both + walked away -> ending_walked_away'
         );
         this.assertEqual(
-            routeScene('ending_check', { trustedElena: true, sharedWithPriya: false }),
+            routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: false }),
             'ending_cassandra',
             'Elena only -> ending_cassandra'
         );
@@ -192,6 +226,18 @@ const TestRunner = {
             routeScene('ending_check', { trustedElena: false, sharedWithPriya: false }),
             'ending_status_quo',
             'No allies -> ending_status_quo'
+        );
+
+        // Elena burned negates her benefit in endings
+        this.assertEqual(
+            routeScene('ending_check', { trustedElena: true, elenaBurned: true, sharedWithPriya: true, negotiated: true }),
+            'ending_pyrrhic',
+            'Elena burned + Priya + negotiated -> ending_pyrrhic (Elena negated)'
+        );
+        this.assertEqual(
+            routeScene('ending_check', { trustedElena: true, elenaBurned: true, sharedWithPriya: false }),
+            'ending_status_quo',
+            'Elena burned + no Priya -> ending_status_quo (Elena negated)'
         );
 
         // Invalid router returns null
@@ -291,6 +337,13 @@ const TestRunner = {
         this.assert(sceneIds.includes('ending_incremental'), 'ending_incremental scene exists');
         this.assert(sceneIds.includes('ending_walked_away'), 'ending_walked_away scene exists');
 
+        // Staffer betrayal scenes
+        this.assert(sceneIds.includes('staffer_approach'), 'staffer_approach scene exists');
+        this.assert(sceneIds.includes('staffer_trust'), 'staffer_trust scene exists');
+        this.assert(sceneIds.includes('staffer_dismiss'), 'staffer_dismiss scene exists');
+        this.assert(sceneIds.includes('elena_check_router'), 'elena_check_router scene exists');
+        this.assert(sceneIds.includes('elena_burned'), 'elena_burned scene exists');
+
         // Verify scenes have required properties
         for (const [id, scene] of Object.entries(STORY.scenes)) {
             // Router scenes have different structure
@@ -373,6 +426,39 @@ const TestRunner = {
             'With Priya, vote is closer (12-10 -> 11-10)'
         );
 
+        // STAFFER: Trusting the staffer sets the flag
+        const stafferTrust = STORY.scenes.staffer_trust;
+        this.assert(
+            stafferTrust !== undefined,
+            'staffer_trust scene exists'
+        );
+
+        // STAFFER: Choice to share Elena's intel only appears if you trusted Elena
+        const stafferApproach = STORY.scenes.staffer_approach;
+        const shareElenaChoice = stafferApproach.choices.find(c =>
+            c.text && c.text.includes('Elena') && c.conditionalOnly === 'trustedElena'
+        );
+        this.assert(
+            shareElenaChoice !== undefined,
+            'Sharing Elena intel with staffer requires trustedElena'
+        );
+
+        // STAFFER: elena_burned scene sets the elenaBurned flag
+        const elenaBurned = STORY.scenes.elena_burned;
+        this.assert(
+            elenaBurned !== undefined && elenaBurned.setFlags && elenaBurned.setFlags.elenaBurned === true,
+            'elena_burned scene sets elenaBurned flag'
+        );
+
+        // STAFFER: Elena confronts you in elena_burned
+        const elenaConfrontLine = elenaBurned.dialogue.find(d =>
+            d.speaker === 'Elena' && d.text && d.text.includes('building trust')
+        );
+        this.assert(
+            elenaConfrontLine !== undefined,
+            'Elena confronts player about burning her source'
+        );
+
         // Each climax path should be distinct
         this.assert(STORY.scenes.climax_neither !== undefined, 'climax_neither exists (no allies)');
         this.assert(STORY.scenes.climax_elena_only !== undefined, 'climax_elena_only exists (intel only)');
@@ -431,6 +517,18 @@ const TestRunner = {
                 flags: { trustedElena: true, sharedWithPriya: true, walkedAway: true },
                 expectedEnding: 'ending_walked_away',
                 expectedType: 'The Principled Stand'
+            },
+            {
+                name: 'Elena burned + Priya (becomes Pyrrhic)',
+                flags: { trustedElena: true, elenaBurned: true, sharedWithPriya: true, negotiated: true },
+                expectedEnding: 'ending_pyrrhic',
+                expectedType: 'The Pyrrhic Victory'
+            },
+            {
+                name: 'Elena burned + no Priya (becomes Status Quo)',
+                flags: { trustedElena: true, elenaBurned: true, sharedWithPriya: false },
+                expectedEnding: 'ending_status_quo',
+                expectedType: 'The Status Quo'
             }
         ];
 
