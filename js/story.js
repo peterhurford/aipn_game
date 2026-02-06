@@ -483,12 +483,22 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Fluorescent lights. Bottled water with the Senate seal. Name tents that nobody reads.',
+                    text: 'Committee staff organized a "multi-stakeholder roundtable" on the Frontier AI Safety Act. Standard procedure before markup—get everyone in a room, let them talk, write a summary memo that a member may or may not read.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The room contains: three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. Everyone has a binder. Nobody will open them.',
+                    text: 'The idea is that committee members review the feedback and adjust the bill language. In practice, the bill language was finalized last week. This is theater.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Fluorescent lights. Bottled water with the Senate seal. Name tents nobody reads.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. AIPN got one seat. Industry got three.',
                     portrait: null
                 },
                 {
