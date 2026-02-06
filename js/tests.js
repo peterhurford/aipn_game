@@ -130,20 +130,35 @@ const TestRunner = {
         );
 
         // Fragment is used in coalition scenes
-        const intervene = STORY.scenes.coalition_intervene;
-        const silent = STORY.scenes.coalition_silent;
+        const aligned = STORY.scenes.coalition_focus_aligned;
+        const scattered = STORY.scenes.coalition_focus_scattered;
+        const broad = STORY.scenes.coalition_broad;
 
-        // Check that the Priya discussion appears in both scenes
-        const interveneHasPriya = intervene.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
-        const silentHasPriya = silent.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
+        // Check that the Priya discussion appears in coalition scenes
+        const alignedHasPriya = aligned.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
+        const scatteredHasPriya = scattered.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
+        const broadHasPriya = broad.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
 
-        this.assert(interveneHasPriya, 'coalition_intervene includes Priya discussion');
-        this.assert(silentHasPriya, 'coalition_silent includes Priya discussion');
+        this.assert(alignedHasPriya, 'coalition_focus_aligned includes Priya discussion');
+        this.assert(scatteredHasPriya, 'coalition_focus_scattered includes Priya discussion');
+        this.assert(broadHasPriya, 'coalition_broad includes Priya discussion');
     },
 
     // Test 4: Routing Rules
     testRoutingRules() {
         console.log('\n--- Routing Rules Tests ---');
+
+        // Coalition focus routing
+        this.assertEqual(
+            routeScene('coalition_focus', { trustedElena: true }),
+            'coalition_focus_aligned',
+            'Trusted Elena -> coalition_focus_aligned'
+        );
+        this.assertEqual(
+            routeScene('coalition_focus', { trustedElena: false }),
+            'coalition_focus_scattered',
+            'Did not trust Elena -> coalition_focus_scattered'
+        );
 
         // Elena check routing - staffer betrayal mechanic
         this.assertEqual(
@@ -167,11 +182,16 @@ const TestRunner = {
             'Trusted neither -> markup_hearing'
         );
 
-        // Climax choice routing - four distinct paths
+        // Climax choice routing - five distinct paths
         this.assertEqual(
-            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true }),
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, seizedMoment: true }),
             'climax_both',
-            'Both allies -> climax_both (full negotiation)'
+            'Both allies + seized moment -> climax_both (full negotiation)'
+        );
+        this.assertEqual(
+            routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, seizedMoment: false }),
+            'climax_both_no_leverage',
+            'Both allies but no moment -> climax_both_no_leverage'
         );
         this.assertEqual(
             routeScene('climax_choice_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: false }),
@@ -201,7 +221,7 @@ const TestRunner = {
             'Elena burned + no Priya -> climax_neither (Elena negated)'
         );
 
-        // Ending routing - five distinct endings
+        // Ending routing - six distinct endings
         this.assertEqual(
             routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, negotiated: true }),
             'ending_incremental',
@@ -211,6 +231,11 @@ const TestRunner = {
             routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, walkedAway: true }),
             'ending_walked_away',
             'Both + walked away -> ending_walked_away'
+        );
+        this.assertEqual(
+            routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true }),
+            'ending_no_leverage',
+            'Both allies but no leverage -> ending_no_leverage'
         );
         this.assertEqual(
             routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: false }),
@@ -320,6 +345,35 @@ const TestRunner = {
             'Only if spoke up',
             'conditionalOnly: includes spokeUp line when flag is true'
         );
+
+        // Test textFn processing
+        const sceneWithTextFn = {
+            dialogue: [
+                { speaker: 'Chairman', textFn: (flags) => flags.myFlag ? 'Yes' : 'No' },
+                { speaker: 'Narrator', text: 'Static text', conditionalText: { myFlag: 'Alt text' } }
+            ]
+        };
+
+        mockManager.gameFlags = { myFlag: true };
+        processed = mockManager.processConditionalDialogue(sceneWithTextFn);
+        this.assertEqual(
+            processed.dialogue[0].text,
+            'Yes',
+            'textFn: computes text from flags'
+        );
+        this.assertEqual(
+            processed.dialogue[1].text,
+            'Alt text',
+            'textFn: conditionalText still works on other lines'
+        );
+
+        mockManager.gameFlags = { myFlag: false };
+        processed = mockManager.processConditionalDialogue(sceneWithTextFn);
+        this.assertEqual(
+            processed.dialogue[0].text,
+            'No',
+            'textFn: recomputes when flags change'
+        );
     },
 
     // Test 6: Scene Structure Validation
@@ -336,6 +390,8 @@ const TestRunner = {
         this.assert(sceneIds.includes('ending_pyrrhic'), 'ending_pyrrhic scene exists');
         this.assert(sceneIds.includes('ending_incremental'), 'ending_incremental scene exists');
         this.assert(sceneIds.includes('ending_walked_away'), 'ending_walked_away scene exists');
+        this.assert(sceneIds.includes('ending_no_leverage'), 'ending_no_leverage scene exists');
+        this.assert(sceneIds.includes('climax_both_no_leverage'), 'climax_both_no_leverage scene exists');
 
         // Staffer betrayal scenes
         this.assert(sceneIds.includes('staffer_approach'), 'staffer_approach scene exists');
@@ -370,7 +426,7 @@ const TestRunner = {
         }
 
         // Ending scenes have correct properties
-        const endings = ['ending_status_quo', 'ending_cassandra', 'ending_pyrrhic', 'ending_incremental', 'ending_walked_away'];
+        const endings = ['ending_status_quo', 'ending_cassandra', 'ending_pyrrhic', 'ending_incremental', 'ending_walked_away', 'ending_no_leverage'];
         for (const endingId of endings) {
             const ending = STORY.scenes[endingId];
             this.assert(ending.isEnding === true, `${endingId} has isEnding=true`);
@@ -419,12 +475,73 @@ const TestRunner = {
             'Markup shows Priya\'s vote paying off (conditionally)'
         );
 
-        // Vote count should change based on Priya's help
-        const voteCountLine = markup.dialogue.find(d => d.text && d.text.includes('12-10') && d.conditionalText);
-        this.assert(
-            voteCountLine !== undefined && voteCountLine.conditionalText.sharedWithPriya.includes('11-10'),
-            'With Priya, vote is closer (12-10 -> 11-10)'
+        // Vote count should change based on flags (uses textFn for DRY computation)
+        const voteCountLine = markup.dialogue.find(d => d.textFn && d.speaker === 'Chairman');
+        this.assert(voteCountLine !== undefined, 'Vote count line uses textFn');
+        this.assertEqual(
+            voteCountLine.textFn({ seizedMoment: false, sharedWithPriya: false }),
+            'The amendment passes. 13-9.',
+            'Default vote count is 13-9'
         );
+        this.assertEqual(
+            voteCountLine.textFn({ seizedMoment: false, sharedWithPriya: true }),
+            'The amendment passes. 12-10.',
+            'With Priya, vote is 12-10'
+        );
+        this.assertEqual(
+            voteCountLine.textFn({ seizedMoment: true, sharedWithPriya: false }),
+            'The amendment passes. 12-10.',
+            'With seized moment, vote is 12-10'
+        );
+        this.assertEqual(
+            voteCountLine.textFn({ seizedMoment: true, sharedWithPriya: true }),
+            'The amendment passes. 11-10.',
+            'With both, vote is 11-10'
+        );
+
+        // Narrator margin textFn - tests pluralization and Priya conditional
+        const marginLine = markup.dialogue.find(d => d.textFn && d.speaker === 'Narrator');
+        this.assert(marginLine !== undefined, 'Margin commentary line uses textFn');
+        this.assertEqual(
+            marginLine.textFn({ seizedMoment: false, sharedWithPriya: false }),
+            'Four votes.',
+            'Default margin is "Four votes."'
+        );
+        this.assertEqual(
+            marginLine.textFn({ seizedMoment: true, sharedWithPriya: false }),
+            'Two votes.',
+            'Seized moment margin is "Two votes."'
+        );
+        this.assertEqual(
+            marginLine.textFn({ seizedMoment: false, sharedWithPriya: true }),
+            'Two votes. Senator Chen made a difference, but not enough.',
+            'Priya margin includes Senator Chen commentary'
+        );
+        this.assertEqual(
+            marginLine.textFn({ seizedMoment: true, sharedWithPriya: true }),
+            'One vote. Senator Chen made a difference, but not enough.',
+            'Both flags margin is "One vote." with Senator Chen'
+        );
+
+        // NEWS: seizedMoment is set by news_fast (gates best ending)
+        const newsFast = STORY.scenes.news_fast;
+        this.assert(
+            newsFast !== undefined && newsFast.setFlags && newsFast.setFlags.seizedMoment === true,
+            'news_fast sets seizedMoment flag'
+        );
+        const newsSlow = STORY.scenes.news_slow;
+        this.assert(
+            newsSlow !== undefined && (!newsSlow.setFlags || !newsSlow.setFlags.seizedMoment),
+            'news_slow does NOT set seizedMoment flag'
+        );
+
+        // NEWS: news_break offers the choice between fast and slow
+        const newsBreak = STORY.scenes.news_break;
+        this.assert(newsBreak !== undefined, 'news_break scene exists');
+        const fastChoice = newsBreak.choices.find(c => c.nextDialogue === 'news_fast');
+        const slowChoice = newsBreak.choices.find(c => c.nextDialogue === 'news_slow');
+        this.assert(fastChoice !== undefined, 'news_break has choice leading to news_fast');
+        this.assert(slowChoice !== undefined, 'news_break has choice leading to news_slow');
 
         // STAFFER: Trusting the staffer sets the flag
         const stafferTrust = STORY.scenes.staffer_trust;
@@ -452,7 +569,7 @@ const TestRunner = {
 
         // STAFFER: Elena confronts you in elena_burned
         const elenaConfrontLine = elenaBurned.dialogue.find(d =>
-            d.speaker === 'Elena' && d.text && d.text.includes('building trust')
+            d.speaker === 'Elena' && d.text && d.text.includes('how careful')
         );
         this.assert(
             elenaConfrontLine !== undefined,
@@ -464,6 +581,7 @@ const TestRunner = {
         this.assert(STORY.scenes.climax_elena_only !== undefined, 'climax_elena_only exists (intel only)');
         this.assert(STORY.scenes.climax_priya_only !== undefined, 'climax_priya_only exists (votes only)');
         this.assert(STORY.scenes.climax_both !== undefined, 'climax_both exists (full negotiation)');
+        this.assert(STORY.scenes.climax_both_no_leverage !== undefined, 'climax_both_no_leverage exists (no public pressure)');
 
         // Elena-only path should reflect understanding without power
         const elenaOnly = STORY.scenes.climax_elena_only;
@@ -517,6 +635,12 @@ const TestRunner = {
                 flags: { trustedElena: true, sharedWithPriya: true, walkedAway: true },
                 expectedEnding: 'ending_walked_away',
                 expectedType: 'The Principled Stand'
+            },
+            {
+                name: 'The Almost (both allies, no leverage)',
+                flags: { trustedElena: true, sharedWithPriya: true },
+                expectedEnding: 'ending_no_leverage',
+                expectedType: 'The Almost'
             },
             {
                 name: 'Elena burned + Priya (becomes Pyrrhic)',

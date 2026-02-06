@@ -5,6 +5,9 @@ const LOCATIONS = {
     office: { location: 'AIPN Office', background: 'bg-office' },
     officeCoalition: { location: 'AIPN Office - Coalition Call', background: 'bg-coalition' },
     officeLate: { location: 'AIPN Office - Late Night', background: 'bg-office' },
+    officeNight: { location: 'AIPN Office - 11:47 PM', background: 'bg-office' },
+    officeMidnight: { location: 'AIPN Office - 12:14 AM', background: 'bg-office' },
+    officeNextMorning: { location: 'AIPN Office - The Next Morning', background: 'bg-office' },
     officeSixMonths: { location: 'AIPN Office - Six Months Later', background: 'bg-office' },
     officeThreeMonths: { location: 'AIPN Office - Three Months Later', background: 'bg-office' },
     officeNextCongress: { location: 'AIPN Office - Next Congress', background: 'bg-office' },
@@ -69,6 +72,18 @@ const DIALOGUE_FRAGMENTS = {
     ]
 };
 
+// Vote count helper - computes Amendment 7 results based on flags
+// Each flag swings one vote; when both swing, one member abstains (21 total)
+function getAmendment7Result(flags) {
+    const swings = (flags.seizedMoment ? 1 : 0) + (flags.sharedWithPriya ? 1 : 0);
+    const yesVotes = 13 - swings;
+    const total = 22 - (swings === 2 ? 1 : 0);
+    const noVotes = total - yesVotes;
+    const margin = yesVotes - noVotes;
+    const NUMBER_WORDS = { 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four' };
+    return { yesVotes, noVotes, margin, marginWord: NUMBER_WORDS[margin] || String(margin) };
+}
+
 // Conditional routing rules for router scenes
 const ROUTING_RULES = {
     coalition_focus: {
@@ -94,9 +109,14 @@ const ROUTING_RULES = {
     climax_choice_check: {
         rules: [
             {
-                // Both allies (Elena not burned) = full negotiation option
-                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya,
+                // Both allies + seized moment = full negotiation option
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.seizedMoment,
                 target: 'climax_both'
+            },
+            {
+                // Both allies but no public pressure = deal falls through
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya,
+                target: 'climax_both_no_leverage'
             },
             {
                 // Elena only (not burned) = you understand but can't act
@@ -115,14 +135,19 @@ const ROUTING_RULES = {
     ending_check: {
         rules: [
             {
-                // Both allies (Elena not burned) + negotiated = Incremental victory
+                // Both allies + negotiated = Incremental victory
                 condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.negotiated,
                 target: 'ending_incremental'
             },
             {
-                // Both allies (Elena not burned) + opposed = you had leverage but walked away
+                // Both allies + walked away = principled stand
                 condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.walkedAway,
                 target: 'ending_walked_away'
+            },
+            {
+                // Both allies but no leverage (no seizedMoment, never got the deal) = The Almost
+                condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya,
+                target: 'ending_no_leverage'
             },
             {
                 // Elena only (not burned) = Cassandra (you saw it coming)
@@ -135,7 +160,7 @@ const ROUTING_RULES = {
                 target: 'ending_pyrrhic'
             }
         ],
-        // No allies (or Elena burned without Priya) = Status Quo (bill died, you were irrelevant)
+        // No allies (or Elena burned without Priya) = Status Quo
         default: 'ending_status_quo'
     }
 };
@@ -162,6 +187,7 @@ const STORY = {
         trustedStaffer: false,
         elenaBurned: false,
         coalitionAligned: false,
+        seizedMoment: false,
         foundEvidence: false,
         knowsTheTruth: false,
         spokeUp: false,
@@ -1189,7 +1215,7 @@ const STORY = {
                 }
             ],
             setFlags: { knowsTheTruth: true },
-            nextScene: 'markup_prep'
+            nextScene: 'news_break'
         },
 
         priya_cautious: {
@@ -1210,6 +1236,215 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: 'You leave.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'news_break'
+        },
+
+        // Breaking news creates a narrow window of relevance
+        news_break: {
+            id: 'news_break',
+            ...LOCATIONS.officeNight,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone won\'t stop buzzing.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She\'s calling from home. She never calls from home.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Prometheus just deployed Titan 4. No safety eval. No waiting period. Just... live.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You pull up the news. A Titan 4 medical chatbot told a patient to take ten times the recommended dose of blood thinners. The patient is in the ICU. It\'s everywhere.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Every reporter covering this will call us tomorrow. But by tomorrow there\'ll be a new crisis. A new cycle.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'If we put out a statement tonight—right now—we\'re the quote in every story. We frame the narrative. "This is exactly why the Frontier AI Safety Act matters."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Tonight? The coalition hasn\'t even—',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Forget the coalition. AIPN. Just us. Three paragraphs. Out by midnight.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'If we go solo, the coalition—',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Will be furious. At least two of them will put out statements saying we don\'t speak for the movement.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'And we\'ll get something wrong. Midnight, no policy review, no legal check. Industry will pick it apart.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'So why?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Because by tomorrow, nobody will care about Titan 4. And nobody will care about our perfectly vetted statement either.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Write it. We can\'t wait.',
+                    nextDialogue: 'news_fast'
+                },
+                {
+                    text: 'We just got the coalition aligned. I\'m not blowing that up.',
+                    nextDialogue: 'news_slow'
+                }
+            ]
+        },
+
+        news_fast: {
+            id: 'news_fast',
+            ...LOCATIONS.officeMidnight,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You write it in twenty minutes. Sarah edits in ten. It\'s not perfect. You send it anyway.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'By 6 AM, AIPN is in the Washington Post, Politico, and three cable news segments. "AI Safety Group Warns: This Was Preventable."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She drops her phone on your desk, grinning.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Twelve organizations spent six months writing position papers. We wrote three paragraphs at midnight and got more coverage than all of them combined.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'By noon, two coalition partners have put out statements distancing themselves from AIPN\'s "unilateral action." One calls it "counterproductive grandstanding."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She shows you the coverage numbers.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Four committee members\' offices called us for comment. Let them grandstand about that.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"Nice work. MindScale\'s comms team is losing it. First time I\'ve seen them play defense."',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Priya.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Saw the statement. Senator Chen\'s office is citing it in her floor remarks."',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                }
+            ],
+            setFlags: { seizedMoment: true },
+            nextScene: 'markup_prep'
+        },
+
+        news_slow: {
+            id: 'news_slow',
+            ...LOCATIONS.officeNextMorning,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You draft an email to the coalition. "Urgent: Need consensus on statement re: Titan 4. Please review attached by 9 AM."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'By 9 AM, you have four replies. Two with suggested edits. One requesting a call. One auto-reply.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition statement goes out at 2 PM. Carefully worded. Twelve signatories. Reviewed by two lawyers.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She pulls up the coverage.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'MindScale put out their statement at 7 AM. "Isolated incident. Internal safeguards worked as intended." They\'re the quote in every story.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Ours got six retweets.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'At least the coalition is still together.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She doesn\'t say anything.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'By evening, a senator says something about crypto. The Titan 4 story is below the fold.',
                     portrait: null
                 }
             ],
@@ -1364,6 +1599,12 @@ const STORY = {
             ...LOCATIONS.capitol,
             dialogue: [
                 {
+                    speaker: 'Narrator',
+                    text: 'The gallery is fuller than usual. The Titan 4 story put the Frontier AI Safety Act on the front page, and AIPN\'s name is attached to it. Reporters in the back row.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
                     speaker: 'Chairman',
                     text: 'The chair recognizes Congressman Peters for Amendment 3.',
                     portrait: null
@@ -1437,14 +1678,21 @@ const STORY = {
                 },
                 {
                     speaker: 'Chairman',
-                    text: 'The amendment passes. 12-10.',
-                    conditionalText: { sharedWithPriya: 'The amendment passes. 11-10.' },
+                    textFn: (flags) => {
+                        const { yesVotes, noVotes } = getAmendment7Result(flags);
+                        return `The amendment passes. ${yesVotes}-${noVotes}.`;
+                    },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Two votes.',
-                    conditionalText: { sharedWithPriya: 'One vote. Senator Chen made a difference, but not enough.' },
+                    textFn: (flags) => {
+                        const { margin, marginWord } = getAmendment7Result(flags);
+                        const base = `${marginWord} vote${margin > 1 ? 's' : ''}.`;
+                        return flags.sharedWithPriya
+                            ? `${base} Senator Chen made a difference, but not enough.`
+                            : base;
+                    },
                     portrait: null
                 },
                 {
@@ -1653,6 +1901,50 @@ const STORY = {
                     nextDialogue: 'climax_walk_away'
                 }
             ]
+        },
+
+        // BOTH BUT NO LEVERAGE: Had allies but no public pressure
+        climax_both_no_leverage: {
+            id: 'climax_both_no_leverage',
+            ...LOCATIONS.mall,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena, then Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"You\'ve got Senator Chen. And I know what they\'d accept. There\'s a deal here—in theory."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"In theory?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"Nobody\'s watching. No public pressure. Why would they give anything up? They\'re winning."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"She\'s right. Without anyone paying attention, there\'s no deal to make."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"You had the pieces. You just needed the moment."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'She\'s right. You understood the game. You had the votes. But nobody was watching, and that\'s the only thing that makes politicians move.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'ending_check'
         },
 
         climax_negotiate: {
@@ -2003,6 +2295,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
+                    text: 'The Titan 4 story faded. But the three paragraphs you wrote at midnight are still the first Google result for "AI safety legislation." That matters more than you\'d think.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
+                    speaker: 'Narrator',
                     text: 'It\'s not the bill you wanted. It\'s not even close. But someone, somewhere, will read those reports. And maybe that matters.',
                     portrait: null
                 },
@@ -2104,6 +2402,86 @@ const STORY = {
             ],
             isEnding: true,
             endingType: 'The Principled Stand'
+        },
+
+        // ENDING: The Almost - both allies, but no public leverage to force a deal
+        ending_no_leverage: {
+            id: 'ending_no_leverage',
+            ...LOCATIONS.officeSixMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 231 to 204.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The full industry version. Every amendment intact.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'We had Elena. We had Priya. We had Senator Chen\'s vote. What happened?',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'Nobody was watching.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"The deal was real. Quarterly public reports. They would have taken it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'If anyone had been paying attention.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"Information. Access. Timing. You had two out of three."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Another buzz. Priya.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"I keep thinking about the Titan 4 story. If we\'d moved faster..."',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'I know.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Senate version next.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You had everything except the one thing that mattered. Next time, you\'ll move faster. Or you won\'t.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Almost'
         }
     }
 };

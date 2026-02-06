@@ -60,6 +60,10 @@ class SceneManager {
                 return true;
             })
             .map(line => {
+                // Apply computed text function (takes precedence over conditionalText)
+                if (line.textFn) {
+                    return { ...line, text: line.textFn(this.gameFlags) };
+                }
                 // Apply conditional text replacements
                 if (line.conditionalText) {
                     for (const [flagName, altText] of Object.entries(line.conditionalText)) {
