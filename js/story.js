@@ -71,6 +71,15 @@ const DIALOGUE_FRAGMENTS = {
 
 // Conditional routing rules for router scenes
 const ROUTING_RULES = {
+    coalition_focus: {
+        rules: [
+            {
+                condition: (flags) => flags.trustedElena,
+                target: 'coalition_focus_aligned'
+            }
+        ],
+        default: 'coalition_focus_scattered'
+    },
     elena_check: {
         rules: [
             {
@@ -152,6 +161,7 @@ const STORY = {
         sharedWithPriya: false,
         trustedStaffer: false,
         elenaBurned: false,
+        coalitionAligned: false,
         foundEvidence: false,
         knowsTheTruth: false,
         spokeUp: false,
@@ -698,103 +708,203 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Voice 1',
-                    text: '"I still think we need to lead with labor impacts—"',
+                    text: '"We need to talk about the compliance amendments. The testing language in 7 is—"',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 2',
-                    text: '"We discussed this. Civil liberties framing polls better—"',
+                    text: '"Forget 7. Amendment 4 guts the bias audit requirements. That\'s our issue."',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 3',
-                    text: '"Can we go back to whether we\'re calling this \'AI safety\' or \'algorithmic accountability\'?"',
+                    text: '"Can we talk about opposing the whole bill? Because once we start picking and choosing amendments, we\'ve already lost."',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 1',
-                    text: '"We spent three meetings on that!"',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 3',
-                    text: '"And we never reached consensus!"',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She mutes her mic and turns to you.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'MindScale has one talking point and twenty lobbyists.',
+                    text: '"We can\'t oppose the whole bill. We spent two years getting it introduced."',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 4',
-                    text: '"The current draft doesn\'t adequately center disability justice perspectives—"',
+                    text: '"The disability community has been fighting for the data access provision since last session. We are not giving that up to chase your priorities."',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 2',
-                    text: '"That\'s valid, but the markup is in two weeks—"',
+                    text: '"Nobody\'s saying give it up. We\'re saying we need a unified message."',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 4',
-                    text: '"So we should rush it and get it wrong?"',
+                    text: '"A unified message that somehow always ends up being your message."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The call has been going for ninety minutes. You\'re no closer to a strategy than when you started.',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'She looks at you expectantly.',
+                    text: 'She mutes the call and turns to you.',
                     portrait: null,
                     isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Twelve organizations. Twelve priorities. Two weeks until markup.',
+                    portrait: null
                 }
             ],
             choices: [
                 {
-                    text: 'Unmute and try to refocus the group',
-                    setFlags: { spokeUp: true },
-                    nextDialogue: 'coalition_intervene'
+                    text: 'We need to focus. Pick one fight and win it.',
+                    nextDialogue: 'coalition_focus_router'
                 },
                 {
-                    text: 'Stay muted. This is above your pay grade.',
-                    nextDialogue: 'coalition_silent'
+                    text: 'Every amendment matters. We fight them all.',
+                    nextDialogue: 'coalition_broad'
                 }
             ]
         },
 
-        coalition_intervene: {
-            id: 'coalition_intervene',
+        // Route based on whether you have Elena's insider intel
+        coalition_focus_router: {
+            id: 'coalition_focus_router',
+            isRouter: true,
+            routerId: 'coalition_focus'
+        },
+
+        // Focus + Elena's intel = you know exactly where to aim
+        coalition_focus_aligned: {
+            id: 'coalition_focus_aligned',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
                     speaker: 'You',
-                    text: 'Hey—can we focus on the markup? We have two weeks.',
+                    text: 'You unmute.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'You',
+                    text: 'Amendment 7. That\'s where the testing requirements get gutted. Everything else is a distraction.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 2',
+                    text: '"What about the bias provisions? We can\'t just—"',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'If Amendment 7 passes, the whole enforcement mechanism becomes voluntary. Your bias audits become suggestions. Nobody has to do anything.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Silence on the line.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 4',
+                    text: '"...How do you know this?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'I know. That\'s what matters right now.',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 1',
-                    text: '"That\'s exactly what I\'ve been saying—"',
+                    text: '"Amendment 7 it is. I\'ll draft the joint statement tonight."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 2',
+                    text: '"I want the bias language in the statement."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 1',
+                    text: '"Fine. But Amendment 7 is the headline."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She stares at you.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'That\'s the first time I\'ve seen this coalition agree on anything in two years.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'I need a drink.',
+                    portrait: null
+                },
+                ...DIALOGUE_FRAGMENTS.priyaDiscussion
+            ],
+            setFlags: { coalitionAligned: true, spokeUp: true },
+            nextScene: 'think_tank'
+        },
+
+        // Focus + no Elena intel = you try but can't agree on what
+        coalition_focus_scattered: {
+            id: 'coalition_focus_scattered',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'You',
+                    text: 'You unmute.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'You',
+                    text: 'We need to pick one amendment. The worst one. Put everything behind killing it.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 2',
+                    text: '"Which one?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You don\'t have an answer for that.',
                     portrait: null
                 },
                 {
                     speaker: 'Voice 3',
-                    text: '"But we haven\'t resolved the framing issue—"',
+                    text: '"This is the problem. Everyone says \'focus\' but nobody agrees on what."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 1',
+                    text: '"Top three amendments. We divide into working groups."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 4',
+                    text: '"So now we have three messages instead of twelve. Progress."',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'She mutes you both.',
+                    text: 'She mutes again.',
                     portrait: null,
                     isAction: true
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'A for effort.',
+                    text: 'Better than last week. I\'ll take it.',
                     portrait: null
                 },
                 {
@@ -804,29 +914,55 @@ const STORY = {
                 },
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
+            setFlags: { spokeUp: true },
             nextScene: 'think_tank'
         },
 
-        coalition_silent: {
-            id: 'coalition_silent',
+        // Fight everything = coalition scatters
+        coalition_broad: {
+            id: 'coalition_broad',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
-                    speaker: 'Sarah',
-                    text: 'She unmutes.',
+                    speaker: 'You',
+                    text: 'You unmute.',
                     portrait: null,
                     isAction: true
                 },
                 {
-                    speaker: 'Sarah',
-                    text: 'Great discussion everyone. Really productive.',
+                    speaker: 'You',
+                    text: 'We fight every amendment. All of them. Nobody\'s issue gets left behind.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 4',
+                    text: '"Finally. Someone who gets it."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 1',
+                    text: '"That\'s not a strategy. That\'s a wish list."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 3',
+                    text: '"It\'s a principle."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Voice 1',
+                    text: '"Great. Principles and four dollars will get you a coffee in this town."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The call ends with everyone agreeing to disagree. Testimony is divided by organization. No joint statement. No unified message.',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'She immediately mutes again.',
-                    portrait: null,
-                    isAction: true
+                    text: 'MindScale has one talking point and twenty lobbyists. We have twelve talking points and... us.',
+                    portrait: null
                 },
                 {
                     speaker: 'Sarah',
@@ -835,6 +971,7 @@ const STORY = {
                 },
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
+            setFlags: { spokeUp: true },
             nextScene: 'think_tank'
         },
 
@@ -1262,6 +1399,18 @@ const STORY = {
                     conditionalOnly: 'sharedWithPriya'
                 },
                 {
+                    speaker: 'Narrator',
+                    text: 'The coalition\'s joint statement is on every desk. Twelve organizations, one message: kill Amendment 7.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition testimonies trickle in. Scattered. Three different priorities. Industry thanks them for their "diverse perspectives."',
+                    portrait: null,
+                    conditionalOnly: '!coalitionAligned'
+                },
+                {
                     speaker: 'Chairman',
                     text: 'All in favor of Amendment 7?',
                     portrait: null
@@ -1458,6 +1607,7 @@ const STORY = {
                 {
                     speaker: 'Elena',
                     text: '"It\'s real. They keep their \'flexible frameworks\' but we get actual reporting requirements. Quarterly instead of annual. Public instead of confidential."',
+                    conditionalText: { coalitionAligned: '"It\'s real. They keep their \'flexible frameworks\' but we get actual reporting requirements. Quarterly instead of annual. Public instead of confidential. And your coalition made enough noise that they\'ll accept independent verification."' },
                     portrait: null
                 },
                 {
@@ -1502,6 +1652,7 @@ const STORY = {
                 {
                     speaker: 'Priya',
                     text: '"Quarterly public reports. That\'s more than we\'ve ever gotten."',
+                    conditionalText: { coalitionAligned: '"Quarterly public reports with independent verification. That\'s more than we\'ve ever gotten."' },
                     portrait: null
                 },
                 {
@@ -1769,6 +1920,7 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     text: '"Mandatory testing" became "encouraged to consider." But the quarterly public reporting requirement stayed in.',
+                    conditionalText: { coalitionAligned: '"Mandatory testing" became "encouraged to consider." But the quarterly public reporting requirement stayed in. And the coalition\'s pressure got independent verification written into the final text.' },
                     portrait: null
                 },
                 {
@@ -1805,6 +1957,7 @@ const STORY = {
                 {
                     speaker: 'Priya',
                     text: '"Senator Chen\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
+                    conditionalText: { coalitionAligned: '"Senator Chen\'s using the reports in oversight hearings. And the coalition is filing FOIA requests every quarter. It\'s not much, but it\'s leverage."' },
                     portrait: null
                 },
                 {
@@ -1815,6 +1968,7 @@ const STORY = {
                 {
                     speaker: 'You',
                     text: 'We got quarterly reports instead of annual. Public instead of confidential.',
+                    conditionalText: { coalitionAligned: 'We got quarterly reports instead of annual. Public instead of confidential. Independent verification. And twelve organizations watching.' },
                     portrait: null
                 },
                 {
