@@ -3,13 +3,13 @@
 // Location registry - centralized location/background definitions
 const LOCATIONS = {
     office: { location: 'AIPN Office', background: 'bg-office' },
-    officeCoalition: { location: 'AIPN Office - Coalition Call', background: 'bg-office' },
+    officeCoalition: { location: 'AIPN Office - Coalition Call', background: 'bg-coalition' },
     officeLate: { location: 'AIPN Office - Late Night', background: 'bg-office' },
     officeSixMonths: { location: 'AIPN Office - Six Months Later', background: 'bg-office' },
     officeThreeMonths: { location: 'AIPN Office - Three Months Later', background: 'bg-office' },
     officeNextCongress: { location: 'AIPN Office - Next Congress', background: 'bg-office' },
     bar: { location: 'The Filibuster Bar', background: 'bg-bar' },
-    conference: { location: 'Conference Room B-7', background: 'bg-office' },
+    conference: { location: 'Conference Room B-7', background: 'bg-conference' },
     thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
     mall: { location: 'National Mall at Night', background: 'bg-mall' },
     capitol: { location: 'Rayburn Building - Committee Room', background: 'bg-capitol' }
@@ -483,7 +483,12 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The room contains: three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator.',
+                    text: 'Fluorescent lights. Bottled water with the Senate seal. Name tents that nobody reads.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The room contains: three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. Everyone has a binder. Nobody will open them.',
                     portrait: null
                 },
                 {
@@ -706,6 +711,11 @@ const STORY = {
             id: 'coalition_call',
             ...LOCATIONS.officeCoalition,
             dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Your desk. Laptop open, twelve faces in tiny rectangles. Half on mute. One visibly eating lunch.',
+                    portrait: null
+                },
                 {
                     speaker: 'Voice 1',
                     text: '"We need to talk about the compliance amendments. The testing language in 7 is—"',
