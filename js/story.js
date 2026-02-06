@@ -7,6 +7,7 @@ const LOCATIONS = {
     officeLate: { location: 'AIPN Office - Late Night', background: 'bg-office' },
     officeNight: { location: 'AIPN Office - 11:47 PM', background: 'bg-office' },
     officeMidnight: { location: 'AIPN Office - 12:14 AM', background: 'bg-office' },
+    officeInbox: { location: 'AIPN Office - 4:47 PM', background: 'bg-office' },
     officeNextMorning: { location: 'AIPN Office - The Next Morning', background: 'bg-office' },
     officeSixMonths: { location: 'AIPN Office - Six Months Later', background: 'bg-office' },
     officeThreeMonths: { location: 'AIPN Office - Three Months Later', background: 'bg-office' },
@@ -192,7 +193,10 @@ const STORY = {
         knowsTheTruth: false,
         spokeUp: false,
         negotiated: false,
-        walkedAway: false
+        walkedAway: false,
+        repliedJournalist: false,
+        repliedIntern: false,
+        repliedListserv: false
     },
 
     // Scene definitions
@@ -898,7 +902,7 @@ const STORY = {
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
             setFlags: { coalitionAligned: true, spokeUp: true },
-            nextScene: 'think_tank'
+            nextScene: 'inbox_triage'
         },
 
         // Focus + no Elena intel = you try but can't agree on what
@@ -961,7 +965,7 @@ const STORY = {
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
             setFlags: { spokeUp: true },
-            nextScene: 'think_tank'
+            nextScene: 'inbox_triage'
         },
 
         // Fight everything = coalition scatters
@@ -1018,6 +1022,174 @@ const STORY = {
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
             setFlags: { spokeUp: true },
+            nextScene: 'inbox_triage'
+        },
+
+        // Email triage - 13 minutes between meetings, 847 unread emails
+        inbox_triage: {
+            id: 'inbox_triage',
+            ...LOCATIONS.officeInbox,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You have thirteen minutes before Priya. You open your inbox. 97 unread.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She glances at your screen.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'You know most of those are listserv threads, right?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'A Slack notification slides in: "thoughts?" No context. No link. Just "thoughts?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'A LinkedIn message from someone at Palantir who "would love to connect." A calendar invite for a meeting about scheduling a meeting.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Three emails catch your eye.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Marcus Webb, Politico — "Quick question on FASA markup timeline" (11:43 AM)',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Jordan (AIPN Intern) — "Question about the stakeholder summary memo (sorry if this is dumb)" (2:15 PM)',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'ai-governance-discuss@lists.georgetown.edu — "[THREAD] Re: Re: Re: Re: Defining \'frontier\'" (47 replies)',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Reply to the Politico reporter',
+                    nextDialogue: 'inbox_journalist'
+                },
+                {
+                    text: 'Reply to the intern',
+                    nextDialogue: 'inbox_intern'
+                },
+                {
+                    text: 'Wade into the listserv thread',
+                    nextDialogue: 'inbox_listserv'
+                }
+            ]
+        },
+
+        // Reporter path - careful background reply
+        inbox_journalist: {
+            id: 'inbox_journalist',
+            ...LOCATIONS.officeInbox,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You draft three careful sentences. On background. Enough to be useful, not enough to be quoted.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You mark Jordan\'s email as unread. You\'ll reply later. You will not reply later.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Webb\'s good to have in the Rolodex. He\'ll remember that.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    portrait: null
+                }
+            ],
+            setFlags: { repliedJournalist: true },
+            nextScene: 'think_tank'
+        },
+
+        // Intern path - the question is actually good
+        inbox_intern: {
+            id: 'inbox_intern',
+            ...LOCATIONS.officeInbox,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Jordan\'s question is actually good. There\'s a timeline discrepancy in the stakeholder memo—the compliance deadline doesn\'t match the implementation schedule.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You type a detailed reply. Then delete it. Too long. You rewrite it. Shorter. Add a smiley face. Delete the smiley face. Add it back. Delete it again.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Five minutes on a three-sentence email.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Did you just spend five minutes replying to an intern instead of a Politico reporter?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    portrait: null
+                }
+            ],
+            setFlags: { repliedIntern: true },
+            nextScene: 'think_tank'
+        },
+
+        // Listserv path - arguing about definitions
+        inbox_listserv: {
+            id: 'inbox_listserv',
+            ...LOCATIONS.officeInbox,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The thread has been going for nine days. Forty-seven replies. The original question: what counts as a "frontier model"?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You write three clear paragraphs. Capability-based definition. Concrete thresholds. Practical examples.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Two replies arrive within ninety seconds. Neither has read past your first sentence.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'You just spent eight minutes arguing about definitions with academics. On a listserv.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    portrait: null
+                }
+            ],
+            setFlags: { repliedListserv: true },
             nextScene: 'think_tank'
         },
 
@@ -1390,6 +1562,12 @@ const STORY = {
                     text: '"Saw the statement. Senator Chen\'s office is citing it in her floor remarks."',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Marcus Webb\'s Politico story quotes AIPN twice. The background paid off.',
+                    portrait: null,
+                    conditionalOnly: 'repliedJournalist'
                 }
             ],
             setFlags: { seizedMoment: true },
@@ -1474,6 +1652,12 @@ const STORY = {
                     speaker: 'Sarah',
                     text: 'Yep.',
                     portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Oh—Jordan caught a discrepancy in the stakeholder memo. The compliance deadline doesn\'t match the implementation schedule. Good eye.',
+                    portrait: null,
+                    conditionalOnly: 'repliedIntern'
                 },
                 {
                     speaker: 'Narrator',
@@ -1608,6 +1792,12 @@ const STORY = {
                     speaker: 'Chairman',
                     text: 'The chair recognizes Congressman Peters for Amendment 3.',
                     portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The ranking member pushes back with a "capability-based definition" argument. Your argument. From the listserv. Uncredited, naturally.',
+                    portrait: null,
+                    conditionalOnly: 'repliedListserv'
                 },
                 {
                     speaker: 'Narrator',

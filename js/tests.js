@@ -43,6 +43,7 @@ const TestRunner = {
         this.testConditionalDialogue();
         this.testSceneStructure();
         this.testCharacterPayoff();
+        this.testInboxTriage();
         this.testEndingPaths();
 
         console.log(`\n${'='.repeat(50)}`);
@@ -600,7 +601,97 @@ const TestRunner = {
         );
     },
 
-    // Test 8: Complete Ending Paths
+    // Test 8: Inbox Triage Scene
+    testInboxTriage() {
+        console.log('\n--- Inbox Triage Tests ---');
+
+        // All four inbox scenes exist
+        const inboxScenes = ['inbox_triage', 'inbox_journalist', 'inbox_intern', 'inbox_listserv'];
+        for (const sceneId of inboxScenes) {
+            this.assert(
+                STORY.scenes[sceneId] !== undefined,
+                `${sceneId} scene exists`
+            );
+        }
+
+        // inbox_triage has three choices
+        const triage = STORY.scenes.inbox_triage;
+        this.assertEqual(
+            triage.choices.length,
+            3,
+            'inbox_triage has 3 choices'
+        );
+
+        // Each outcome scene sets exactly one flag
+        const journalist = STORY.scenes.inbox_journalist;
+        this.assert(
+            journalist.setFlags.repliedJournalist === true,
+            'inbox_journalist sets repliedJournalist'
+        );
+        this.assertEqual(
+            Object.keys(journalist.setFlags).length,
+            1,
+            'inbox_journalist sets exactly one flag'
+        );
+
+        const intern = STORY.scenes.inbox_intern;
+        this.assert(
+            intern.setFlags.repliedIntern === true,
+            'inbox_intern sets repliedIntern'
+        );
+        this.assertEqual(
+            Object.keys(intern.setFlags).length,
+            1,
+            'inbox_intern sets exactly one flag'
+        );
+
+        const listserv = STORY.scenes.inbox_listserv;
+        this.assert(
+            listserv.setFlags.repliedListserv === true,
+            'inbox_listserv sets repliedListserv'
+        );
+        this.assertEqual(
+            Object.keys(listserv.setFlags).length,
+            1,
+            'inbox_listserv sets exactly one flag'
+        );
+
+        // All three outcome scenes lead to think_tank
+        this.assertEqual(
+            journalist.nextScene,
+            'think_tank',
+            'inbox_journalist leads to think_tank'
+        );
+        this.assertEqual(
+            intern.nextScene,
+            'think_tank',
+            'inbox_intern leads to think_tank'
+        );
+        this.assertEqual(
+            listserv.nextScene,
+            'think_tank',
+            'inbox_listserv leads to think_tank'
+        );
+
+        // Coalition scenes now route to inbox_triage
+        this.assertEqual(
+            STORY.scenes.coalition_focus_aligned.nextScene,
+            'inbox_triage',
+            'coalition_focus_aligned routes to inbox_triage'
+        );
+        this.assertEqual(
+            STORY.scenes.coalition_focus_scattered.nextScene,
+            'inbox_triage',
+            'coalition_focus_scattered routes to inbox_triage'
+        );
+        this.assertEqual(
+            STORY.scenes.coalition_broad.nextScene,
+            'inbox_triage',
+            'coalition_broad routes to inbox_triage'
+        );
+    },
+
+    // Test 9: Complete Ending Paths
     testEndingPaths() {
         console.log('\n--- Ending Path Tests ---');
 
