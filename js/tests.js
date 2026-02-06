@@ -70,7 +70,7 @@ const TestRunner = {
         }
 
         // Specific location values
-        this.assertEqual(LOCATIONS.office.location, 'AIPN Office', 'LOCATIONS.office.location correct');
+        this.assertEqual(LOCATIONS.office.location, 'TAPP Office', 'LOCATIONS.office.location correct');
         this.assertEqual(LOCATIONS.office.background, 'bg-office', 'LOCATIONS.office.background correct');
         this.assertEqual(LOCATIONS.bar.location, 'The Filibuster Bar', 'LOCATIONS.bar.location correct');
         this.assertEqual(LOCATIONS.bar.background, 'bg-bar', 'LOCATIONS.bar.background correct');

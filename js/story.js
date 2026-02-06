@@ -2,16 +2,16 @@
 
 // Location registry - centralized location/background definitions
 const LOCATIONS = {
-    office: { location: 'AIPN Office', background: 'bg-office' },
-    officeCoalition: { location: 'AIPN Office - Coalition Call', background: 'bg-coalition' },
-    officeLate: { location: 'AIPN Office - Late Night', background: 'bg-office' },
-    officeNight: { location: 'AIPN Office - 11:47 PM', background: 'bg-office' },
-    officeMidnight: { location: 'AIPN Office - 12:14 AM', background: 'bg-office' },
-    officeInbox: { location: 'AIPN Office - 4:47 PM', background: 'bg-office' },
-    officeNextMorning: { location: 'AIPN Office - The Next Morning', background: 'bg-office' },
-    officeSixMonths: { location: 'AIPN Office - Six Months Later', background: 'bg-office' },
-    officeThreeMonths: { location: 'AIPN Office - Three Months Later', background: 'bg-office' },
-    officeNextCongress: { location: 'AIPN Office - Next Congress', background: 'bg-office' },
+    office: { location: 'TAPP Office', background: 'bg-office' },
+    officeCoalition: { location: 'TAPP Office - Coalition Call', background: 'bg-coalition' },
+    officeLate: { location: 'TAPP Office - Late Night', background: 'bg-office' },
+    officeNight: { location: 'TAPP Office - 11:47 PM', background: 'bg-office' },
+    officeMidnight: { location: 'TAPP Office - 12:14 AM', background: 'bg-office' },
+    officeInbox: { location: 'TAPP Office - 4:47 PM', background: 'bg-office' },
+    officeNextMorning: { location: 'TAPP Office - The Next Morning', background: 'bg-office' },
+    officeSixMonths: { location: 'TAPP Office - Six Months Later', background: 'bg-office' },
+    officeThreeMonths: { location: 'TAPP Office - Three Months Later', background: 'bg-office' },
+    officeNextCongress: { location: 'TAPP Office - Next Congress', background: 'bg-office' },
     bar: { location: 'The Filibuster Bar', background: 'bg-bar' },
     conference: { location: 'Conference Room B-7', background: 'bg-conference' },
     thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
@@ -207,7 +207,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Three years at AIPN. Two failed bills. This is attempt number three.',
+                    text: 'Three years at TAPP. Two failed bills. This is attempt number three.',
                     portrait: null
                 },
                 {
@@ -528,7 +528,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. AIPN got one seat. Industry got three.',
+                    text: 'Three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. TAPP got one seat. Industry got three.',
                     portrait: null
                 },
                 {
@@ -641,7 +641,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Staffer',
-                    text: 'Hey—you\'re with AIPN, right? I work for Congressman Davis on the committee.',
+                    text: 'Hey—you\'re with TAPP, right? I work for Congressman Davis on the committee.',
                     portrait: null
                 },
                 {
@@ -1048,12 +1048,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'A Slack notification slides in: "thoughts?" No context. No link. Just "thoughts?"',
+                    text: 'A work chat notification slides in: "thoughts?" No context. No link. Just "thoughts?"',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'A LinkedIn message from someone at Palantir who "would love to connect." A calendar invite for a meeting about scheduling a meeting.',
+                    text: 'A CareerLink message from someone at Castellan who "would love to connect." A calendar invite for a meeting about scheduling a meeting.',
                     portrait: null
                 },
                 {
@@ -1063,23 +1063,23 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Marcus Webb, Politico — "Quick question on FASA markup timeline" (11:43 AM)',
+                    text: 'Marcus Webb, The Capitol Gazette — "Quick question on FASA markup timeline" (11:43 AM)',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Jordan (AIPN Intern) — "Question about the stakeholder summary memo (sorry if this is dumb)" (2:15 PM)',
+                    text: 'Jordan (TAPP Intern) — "Question about the stakeholder summary memo (sorry if this is dumb)" (2:15 PM)',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'ai-governance-discuss@lists.georgetown.edu — "[THREAD] Re: Re: Re: Re: Defining \'frontier\'" (47 replies)',
+                    text: 'ai-governance-discuss@lists.worthington.edu — "[THREAD] Re: Re: Re: Re: Defining \'frontier\'" (47 replies)',
                     portrait: null
                 }
             ],
             choices: [
                 {
-                    text: 'Reply to the Politico reporter',
+                    text: 'Reply to the The Capitol Gazette reporter',
                     nextDialogue: 'inbox_journalist'
                 },
                 {
@@ -1145,7 +1145,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Did you just spend five minutes replying to an intern instead of a Politico reporter?',
+                    text: 'Did you just spend five minutes replying to an intern instead of a The Capitol Gazette reporter?',
                     portrait: null
                 },
                 {
@@ -1457,7 +1457,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Forget the coalition. AIPN. Just us. Three paragraphs. Out by midnight.',
+                    text: 'Forget the coalition. TAPP. Just us. Three paragraphs. Out by midnight.',
                     portrait: null
                 },
                 {
@@ -1509,7 +1509,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'By 6 AM, AIPN is in the Washington Post, Politico, and three cable news segments. "AI Safety Group Warns: This Was Preventable."',
+                    text: 'By 6 AM, TAPP is in the National Record, The Capitol Gazette, and three cable news segments. "AI Safety Group Warns: This Was Preventable."',
                     portrait: null
                 },
                 {
@@ -1525,7 +1525,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'By noon, two coalition partners have put out statements distancing themselves from AIPN\'s "unilateral action." One calls it "counterproductive grandstanding."',
+                    text: 'By noon, two coalition partners have put out statements distancing themselves from TAPP\'s "unilateral action." One calls it "counterproductive grandstanding."',
                     portrait: null
                 },
                 {
@@ -1565,7 +1565,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Marcus Webb\'s Politico story quotes AIPN twice. The background paid off.',
+                    text: 'Marcus Webb\'s The Capitol Gazette story quotes TAPP twice. The background paid off.',
                     portrait: null,
                     conditionalOnly: 'repliedJournalist'
                 }
@@ -1784,7 +1784,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The gallery is fuller than usual. The Titan 4 story put the Frontier AI Safety Act on the front page, and AIPN\'s name is attached to it. Reporters in the back row.',
+                    text: 'The gallery is fuller than usual. The Titan 4 story put the Frontier AI Safety Act on the front page, and TAPP\'s name is attached to it. Reporters in the back row.',
                     portrait: null,
                     conditionalOnly: 'seizedMoment'
                 },
@@ -2236,7 +2236,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Your phone buzzes. LinkedIn notification.',
+                    text: 'Your phone buzzes. CareerLink notification.',
                     portrait: null
                 },
                 {
