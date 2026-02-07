@@ -518,6 +518,51 @@ body {
     font-style: normal;
 }
 
+/* Amara - warm rose, civil rights advocate */
+.speaker-amara #character-name {
+    color: #e07080;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.speaker-amara #dialogue-text {
+    color: #f8e0e4;
+    border-left: 3px solid #e07080;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(224, 112, 128, 0.06) 0%, transparent 100%);
+}
+
+/* Kai - sky blue, accessibility coalition */
+.speaker-kai #character-name {
+    color: #60a8e0;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.speaker-kai #dialogue-text {
+    color: #e0f0fc;
+    border-left: 3px solid #60a8e0;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(96, 168, 224, 0.06) 0%, transparent 100%);
+}
+
+/* Diane - sharp green, watchdog/data-driven */
+.speaker-diane #character-name {
+    color: #70c070;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.speaker-diane #dialogue-text {
+    color: #e0f8e0;
+    border-left: 3px solid #70c070;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+    background: linear-gradient(90deg, rgba(112, 192, 112, 0.06) 0%, transparent 100%);
+}
+
 /* Minor characters (meeting voices, reps) - muted, background noise */
 .speaker-minor #character-name {
     color: #808070;

@@ -38,7 +38,6 @@ const TestRunner = {
 
         this.testLocations();
         this.testSpeakerStyles();
-        this.testDialogueFragments();
         this.testRoutingRules();
         this.testConditionalDialogue();
         this.testSceneStructure();
@@ -47,6 +46,12 @@ const TestRunner = {
         this.testSpokeUpFlag();
         this.testFlagCoverage();
         this.testEndingPaths();
+        this.testCoalitionTexture();
+        this.testTimePressureFork();
+        this.testSecondAct();
+        this.testInteractiveHearing();
+        this.testMiraclePath();
+        this.testVoteCount();
 
         console.log(`\n${'='.repeat(50)}`);
         console.log(`Tests: ${this.passed} passed, ${this.failed} failed`);
@@ -78,6 +83,10 @@ const TestRunner = {
         this.assertEqual(LOCATIONS.bar.background, 'bg-bar', 'LOCATIONS.bar.background correct');
         this.assertEqual(LOCATIONS.mall.background, 'bg-mall', 'LOCATIONS.mall.background correct');
         this.assertEqual(LOCATIONS.capitol.background, 'bg-capitol', 'LOCATIONS.capitol.background correct');
+
+        // New locations
+        this.assert(LOCATIONS.officeThreeDays !== undefined, 'officeThreeDays location exists');
+        this.assert(LOCATIONS.officeOneDayBefore !== undefined, 'officeOneDayBefore location exists');
     },
 
     // Test 2: Speaker Style Configuration
@@ -101,66 +110,71 @@ const TestRunner = {
         this.assertEqual(getSpeakerClass('Voice 1'), 'speaker-minor', 'Voice 1 maps to speaker-minor');
         this.assertEqual(getSpeakerClass('Facilitator'), 'speaker-minor', 'Facilitator maps to speaker-minor');
 
+        // Coalition partner speakers - distinct styles
+        this.assertEqual(getSpeakerClass('Amara'), 'speaker-amara', 'Amara maps to speaker-amara');
+        this.assertEqual(getSpeakerClass('Kai'), 'speaker-kai', 'Kai maps to speaker-kai');
+        this.assertEqual(getSpeakerClass('Diane'), 'speaker-diane', 'Diane maps to speaker-diane');
+
         // Unknown speaker fallback
         this.assertEqual(getSpeakerClass('Unknown'), 'speaker-character', 'Unknown speaker maps to speaker-character');
         this.assertEqual(getSpeakerClass(''), 'speaker-character', 'Empty speaker maps to speaker-character');
     },
 
-    // Test 3: Dialogue Fragments
-    testDialogueFragments() {
-        console.log('\n--- Dialogue Fragment Tests ---');
-
-        // Priya discussion fragment exists and has correct structure
-        this.assert(
-            DIALOGUE_FRAGMENTS.priyaDiscussion,
-            'priyaDiscussion fragment exists'
-        );
-        this.assertEqual(
-            DIALOGUE_FRAGMENTS.priyaDiscussion.length,
-            4,
-            'priyaDiscussion has 4 lines'
-        );
-
-        // First line is player asking about Priya
-        this.assertEqual(
-            DIALOGUE_FRAGMENTS.priyaDiscussion[0].speaker,
-            'You',
-            'First line speaker is You'
-        );
-        this.assert(
-            DIALOGUE_FRAGMENTS.priyaDiscussion[0].text.includes('Priya Sharma'),
-            'First line mentions Priya Sharma'
-        );
-
-        // Fragment is used in coalition scenes
-        const aligned = STORY.scenes.coalition_focus_aligned;
-        const scattered = STORY.scenes.coalition_focus_scattered;
-        const broad = STORY.scenes.coalition_broad;
-
-        // Check that the Priya discussion appears in coalition scenes
-        const alignedHasPriya = aligned.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
-        const scatteredHasPriya = scattered.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
-        const broadHasPriya = broad.dialogue.some(d => d.text && d.text.includes('Priya Sharma'));
-
-        this.assert(alignedHasPriya, 'coalition_focus_aligned includes Priya discussion');
-        this.assert(scatteredHasPriya, 'coalition_focus_scattered includes Priya discussion');
-        this.assert(broadHasPriya, 'coalition_broad includes Priya discussion');
-    },
-
-    // Test 4: Routing Rules
+    // Test 3: Routing Rules
     testRoutingRules() {
         console.log('\n--- Routing Rules Tests ---');
 
-        // Coalition focus routing
+        // Coalition outcome routing (with promise-conflict system)
+        // 3/3 without broken promises -> strong
         this.assertEqual(
-            routeScene('coalition_focus', { trustedElena: true }),
-            'coalition_focus_aligned',
-            'Trusted Elena -> coalition_focus_aligned'
+            routeScene('coalition_outcome', { alignedCivilRights: true, alignedDisability: true, alignedWatchdog: true }),
+            'coalition_strong',
+            'All 3 partners (no conflicting promises) -> coalition_strong'
         );
+        // 2/3 without Diane -> moderate (no promise conflicts possible)
         this.assertEqual(
-            routeScene('coalition_focus', { trustedElena: false }),
-            'coalition_focus_scattered',
-            'Did not trust Elena -> coalition_focus_scattered'
+            routeScene('coalition_outcome', { alignedCivilRights: true, alignedDisability: true, alignedWatchdog: false }),
+            'coalition_moderate',
+            '2 of 3 partners (no Diane) -> coalition_moderate'
+        );
+        // Broad promise + Diane breaks Amara: 3 aligned but only 2 effective
+        this.assertEqual(
+            routeScene('coalition_outcome', {
+                alignedCivilRights: true, alignedDisability: true, alignedWatchdog: true,
+                promisedBroadStatement: true
+            }),
+            'coalition_moderate',
+            'Broad promise + Diane -> Amara walks, coalition_moderate'
+        );
+        // Lead signatory promise + Diane breaks Kai: 3 aligned but only 2 effective
+        this.assertEqual(
+            routeScene('coalition_outcome', {
+                alignedCivilRights: true, alignedDisability: true, alignedWatchdog: true,
+                promisedLeadSignatory: true
+            }),
+            'coalition_moderate',
+            'Lead signatory promise + Diane -> Kai walks, coalition_moderate'
+        );
+        // Both promises + Diane: both Amara and Kai walk, only Diane left
+        this.assertEqual(
+            routeScene('coalition_outcome', {
+                alignedCivilRights: true, alignedDisability: true, alignedWatchdog: true,
+                promisedBroadStatement: true, promisedLeadSignatory: true
+            }),
+            'coalition_weak',
+            'Both promises + Diane -> both walk, coalition_weak'
+        );
+        // 1 partner -> weak
+        this.assertEqual(
+            routeScene('coalition_outcome', { alignedCivilRights: true, alignedDisability: false, alignedWatchdog: false }),
+            'coalition_weak',
+            '1 of 3 partners -> coalition_weak'
+        );
+        // 0 partners -> weak
+        this.assertEqual(
+            routeScene('coalition_outcome', { alignedCivilRights: false, alignedDisability: false, alignedWatchdog: false }),
+            'coalition_weak',
+            '0 of 3 partners -> coalition_weak'
         );
 
         // Elena check routing - staffer betrayal mechanic
@@ -171,18 +185,18 @@ const TestRunner = {
         );
         this.assertEqual(
             routeScene('elena_check', { trustedElena: true, trustedStaffer: false }),
-            'markup_hearing',
-            'Trusted Elena but not staffer -> markup_hearing (safe)'
+            'markup_hearing_open',
+            'Trusted Elena but not staffer -> markup_hearing_open (safe)'
         );
         this.assertEqual(
             routeScene('elena_check', { trustedElena: false, trustedStaffer: true }),
-            'markup_hearing',
-            'Trusted staffer but not Elena -> markup_hearing (nothing to burn)'
+            'markup_hearing_open',
+            'Trusted staffer but not Elena -> markup_hearing_open (nothing to burn)'
         );
         this.assertEqual(
             routeScene('elena_check', { trustedElena: false, trustedStaffer: false }),
-            'markup_hearing',
-            'Trusted neither -> markup_hearing'
+            'markup_hearing_open',
+            'Trusted neither -> markup_hearing_open'
         );
 
         // Climax choice routing - five distinct paths
@@ -224,7 +238,12 @@ const TestRunner = {
             'Elena burned + no Priya -> climax_neither (Elena negated)'
         );
 
-        // Ending routing - six distinct endings
+        // Ending routing - seven distinct endings (miracle first)
+        this.assertEqual(
+            routeScene('ending_check', { miracleVictory: true }),
+            'ending_miracle',
+            'Miracle victory -> ending_miracle'
+        );
         this.assertEqual(
             routeScene('ending_check', { trustedElena: true, elenaBurned: false, sharedWithPriya: true, negotiated: true }),
             'ending_incremental',
@@ -394,6 +413,7 @@ const TestRunner = {
         this.assert(sceneIds.includes('ending_incremental'), 'ending_incremental scene exists');
         this.assert(sceneIds.includes('ending_walked_away'), 'ending_walked_away scene exists');
         this.assert(sceneIds.includes('ending_no_leverage'), 'ending_no_leverage scene exists');
+        this.assert(sceneIds.includes('ending_miracle'), 'ending_miracle scene exists');
         this.assert(sceneIds.includes('climax_both_no_leverage'), 'climax_both_no_leverage scene exists');
 
         // Staffer betrayal scenes
@@ -429,17 +449,24 @@ const TestRunner = {
         }
 
         // Ending scenes have correct properties
-        const endings = ['ending_status_quo', 'ending_cassandra', 'ending_pyrrhic', 'ending_incremental', 'ending_walked_away', 'ending_no_leverage'];
+        const endings = ['ending_status_quo', 'ending_cassandra', 'ending_pyrrhic', 'ending_incremental', 'ending_walked_away', 'ending_no_leverage', 'ending_miracle'];
         for (const endingId of endings) {
             const ending = STORY.scenes[endingId];
             this.assert(ending.isEnding === true, `${endingId} has isEnding=true`);
             this.assert(ending.endingType, `${endingId} has endingType`);
         }
 
-        // Verify old endings have been removed
+        // Verify old scenes have been removed
         this.assert(!STORY.scenes.ending_a, 'ending_a removed (replaced by new structure)');
         this.assert(!STORY.scenes.ending_b, 'ending_b removed (replaced by new structure)');
         this.assert(!STORY.scenes.ending_c, 'ending_c removed (replaced by new structure)');
+        this.assert(!STORY.scenes.coalition_call, 'coalition_call removed (replaced by coalition_call_intro)');
+        this.assert(!STORY.scenes.coalition_focus_router, 'coalition_focus_router removed');
+        this.assert(!STORY.scenes.coalition_focus_aligned, 'coalition_focus_aligned removed');
+        this.assert(!STORY.scenes.coalition_focus_scattered, 'coalition_focus_scattered removed');
+        this.assert(!STORY.scenes.coalition_broad, 'coalition_broad removed');
+        this.assert(!STORY.scenes.markup_prep, 'markup_prep removed (replaced by act2 scenes)');
+        this.assert(!STORY.scenes.markup_hearing, 'markup_hearing removed (split into interactive scenes)');
     },
 
     // Test 7: Character Differentiation and Payoff
@@ -461,9 +488,9 @@ const TestRunner = {
             'Priya explicitly differentiates her value from Elena'
         );
 
-        // ELENA: Markup should show her intel paying off (Amendments 3-6 sacrificial)
-        const markup = STORY.scenes.markup_hearing;
-        const elenaPayoff = markup.dialogue.find(d =>
+        // ELENA: Markup hearing open should show her intel paying off
+        const markupOpen = STORY.scenes.markup_hearing_open;
+        const elenaPayoff = markupOpen.dialogue.find(d =>
             d.text && d.text.includes('Elena\'s prediction') && d.conditionalOnly === 'trustedElena'
         );
         this.assert(
@@ -471,60 +498,18 @@ const TestRunner = {
             'Markup shows Elena\'s intel paying off (conditionally)'
         );
 
-        // PRIYA: Markup should show her votes paying off (Representative Chen)
-        const priyaLine = markup.dialogue.find(d => d.speaker === 'Priya' && d.conditionalOnly === 'sharedWithPriya');
+        // PRIYA: Markup hearing recess should show her votes paying off (Representative Chen)
+        const recessChoice = STORY.scenes.markup_hearing_recess_choice;
+        const priyaLine = recessChoice.dialogue.find(d => d.speaker === 'Priya' && d.conditionalOnly === 'sharedWithPriya');
         this.assert(
             priyaLine !== undefined,
-            'Markup shows Priya\'s vote paying off (conditionally)'
+            'Markup recess shows Priya\'s vote paying off (conditionally)'
         );
 
-        // Vote count should change based on flags (uses textFn for DRY computation)
-        const voteCountLine = markup.dialogue.find(d => d.textFn && d.speaker === 'Chairman');
+        // Vote count in markup_hearing_vote uses textFn
+        const vote = STORY.scenes.markup_hearing_vote;
+        const voteCountLine = vote.dialogue.find(d => d.textFn && d.speaker === 'Chairman');
         this.assert(voteCountLine !== undefined, 'Vote count line uses textFn');
-        this.assertEqual(
-            voteCountLine.textFn({ seizedMoment: false, sharedWithPriya: false }),
-            'The amendment passes. 13-9.',
-            'Default vote count is 13-9'
-        );
-        this.assertEqual(
-            voteCountLine.textFn({ seizedMoment: false, sharedWithPriya: true }),
-            'The amendment passes. 12-10.',
-            'With Priya, vote is 12-10'
-        );
-        this.assertEqual(
-            voteCountLine.textFn({ seizedMoment: true, sharedWithPriya: false }),
-            'The amendment passes. 12-10.',
-            'With seized moment, vote is 12-10'
-        );
-        this.assertEqual(
-            voteCountLine.textFn({ seizedMoment: true, sharedWithPriya: true }),
-            'The amendment passes. 11-10.',
-            'With both, vote is 11-10'
-        );
-
-        // Narrator margin textFn - tests pluralization and Priya conditional
-        const marginLine = markup.dialogue.find(d => d.textFn && d.speaker === 'Narrator');
-        this.assert(marginLine !== undefined, 'Margin commentary line uses textFn');
-        this.assertEqual(
-            marginLine.textFn({ seizedMoment: false, sharedWithPriya: false }),
-            'Four votes.',
-            'Default margin is "Four votes."'
-        );
-        this.assertEqual(
-            marginLine.textFn({ seizedMoment: true, sharedWithPriya: false }),
-            'Two votes.',
-            'Seized moment margin is "Two votes."'
-        );
-        this.assertEqual(
-            marginLine.textFn({ seizedMoment: false, sharedWithPriya: true }),
-            'Two votes. Representative Chen made a difference, but not enough.',
-            'Priya margin includes Representative Chen commentary'
-        );
-        this.assertEqual(
-            marginLine.textFn({ seizedMoment: true, sharedWithPriya: true }),
-            'One vote. Representative Chen made a difference, but not enough.',
-            'Both flags margin is "One vote." with Representative Chen'
-        );
 
         // NEWS: seizedMoment is set by news_fast (gates best ending)
         const newsFast = STORY.scenes.news_fast;
@@ -545,13 +530,6 @@ const TestRunner = {
         const slowChoice = newsBreak.choices.find(c => c.nextDialogue === 'news_slow');
         this.assert(fastChoice !== undefined, 'news_break has choice leading to news_fast');
         this.assert(slowChoice !== undefined, 'news_break has choice leading to news_slow');
-
-        // STAFFER: Trusting the staffer sets the flag
-        const stafferTrust = STORY.scenes.staffer_trust;
-        this.assert(
-            stafferTrust !== undefined,
-            'staffer_trust scene exists'
-        );
 
         // STAFFER: Choice to share Elena's intel only appears if you trusted Elena
         const stafferApproach = STORY.scenes.staffer_approach;
@@ -585,6 +563,7 @@ const TestRunner = {
         this.assert(STORY.scenes.climax_priya_only !== undefined, 'climax_priya_only exists (votes only)');
         this.assert(STORY.scenes.climax_both !== undefined, 'climax_both exists (full negotiation)');
         this.assert(STORY.scenes.climax_both_no_leverage !== undefined, 'climax_both_no_leverage exists (no public pressure)');
+        this.assert(STORY.scenes.climax_miracle !== undefined, 'climax_miracle exists (miracle path)');
 
         // Elena-only path should reflect understanding without power
         const elenaOnly = STORY.scenes.climax_elena_only;
@@ -641,55 +620,45 @@ const TestRunner = {
             intern.setFlags.repliedIntern === true,
             'inbox_intern sets repliedIntern'
         );
-        this.assertEqual(
-            Object.keys(intern.setFlags).length,
-            1,
-            'inbox_intern sets exactly one flag'
-        );
 
         const listserv = STORY.scenes.inbox_listserv;
         this.assert(
             listserv.setFlags.repliedListserv === true,
             'inbox_listserv sets repliedListserv'
         );
-        this.assertEqual(
-            Object.keys(listserv.setFlags).length,
-            1,
-            'inbox_listserv sets exactly one flag'
-        );
 
-        // All three outcome scenes lead to think_tank
+        // All three outcome scenes lead to news_break
         this.assertEqual(
             journalist.nextScene,
-            'think_tank',
-            'inbox_journalist leads to think_tank'
+            'news_break',
+            'inbox_journalist leads to news_break'
         );
         this.assertEqual(
             intern.nextScene,
-            'think_tank',
-            'inbox_intern leads to think_tank'
+            'news_break',
+            'inbox_intern leads to news_break'
         );
         this.assertEqual(
             listserv.nextScene,
-            'think_tank',
-            'inbox_listserv leads to think_tank'
+            'news_break',
+            'inbox_listserv leads to news_break'
         );
 
-        // Coalition scenes now route to inbox_triage
+        // Coalition scenes route to inbox_triage
         this.assertEqual(
-            STORY.scenes.coalition_focus_aligned.nextScene,
+            STORY.scenes.coalition_strong.nextScene,
             'inbox_triage',
-            'coalition_focus_aligned routes to inbox_triage'
+            'coalition_strong routes to inbox_triage'
         );
         this.assertEqual(
-            STORY.scenes.coalition_focus_scattered.nextScene,
+            STORY.scenes.coalition_moderate.nextScene,
             'inbox_triage',
-            'coalition_focus_scattered routes to inbox_triage'
+            'coalition_moderate routes to inbox_triage'
         );
         this.assertEqual(
-            STORY.scenes.coalition_broad.nextScene,
+            STORY.scenes.coalition_weak.nextScene,
             'inbox_triage',
-            'coalition_broad routes to inbox_triage'
+            'coalition_weak routes to inbox_triage'
         );
     },
 
@@ -697,30 +666,19 @@ const TestRunner = {
     testSpokeUpFlag() {
         console.log('\n--- spokeUp Flag Tests ---');
 
-        // spokeUp should only be set in stakeholder_speak
-        const stakeholderSpeak = STORY.scenes.stakeholder_speak;
+        // spokeUp should be set by the stakeholder_meeting choice that leads to stakeholder_speak
+        const stakeholderMeeting = STORY.scenes.stakeholder_meeting;
+        const speakChoice = stakeholderMeeting.choices.find(c => c.nextDialogue === 'stakeholder_speak');
         this.assert(
-            stakeholderSpeak.setFlags && stakeholderSpeak.setFlags.spokeUp === true,
-            'stakeholder_speak sets spokeUp flag'
+            speakChoice && speakChoice.setFlags && speakChoice.setFlags.spokeUp === true,
+            'stakeholder_speak choice sets spokeUp flag'
         );
 
         // Coalition scenes should NOT set spokeUp
-        const coalitionAligned = STORY.scenes.coalition_focus_aligned;
+        const coalitionStrong = STORY.scenes.coalition_strong;
         this.assert(
-            !coalitionAligned.setFlags || !coalitionAligned.setFlags.spokeUp,
-            'coalition_focus_aligned does NOT set spokeUp'
-        );
-
-        const coalitionScattered = STORY.scenes.coalition_focus_scattered;
-        this.assert(
-            !coalitionScattered || !coalitionScattered.setFlags || !coalitionScattered.setFlags.spokeUp,
-            'coalition_focus_scattered does NOT set spokeUp'
-        );
-
-        const coalitionBroad = STORY.scenes.coalition_broad;
-        this.assert(
-            !coalitionBroad || !coalitionBroad.setFlags || !coalitionBroad.setFlags.spokeUp,
-            'coalition_broad does NOT set spokeUp'
+            !coalitionStrong.setFlags || !coalitionStrong.setFlags.spokeUp,
+            'coalition_strong does NOT set spokeUp'
         );
 
         // stakeholder_silent should NOT set spokeUp
@@ -743,7 +701,7 @@ const TestRunner = {
     testFlagCoverage() {
         console.log('\n--- Flag Coverage Tests ---');
 
-        // foundEvidence should be set in stakeholder_speak (not elena_trusted)
+        // foundEvidence should be set in stakeholder_speak
         const stakeholderSpeak = STORY.scenes.stakeholder_speak;
         this.assert(
             stakeholderSpeak.setFlags && stakeholderSpeak.setFlags.foundEvidence === true,
@@ -756,12 +714,12 @@ const TestRunner = {
             'foundEvidence is NOT set in elena_trusted (moved to stakeholder)'
         );
 
-        // foundEvidence should be used in markup_prep conditional dialogue
-        const markupPrep = STORY.scenes.markup_prep;
-        const evidenceLine = markupPrep.dialogue.find(d => d.conditionalOnly === 'foundEvidence');
+        // foundEvidence should be used in act2_morning conditional dialogue
+        const act2Morning = STORY.scenes.act2_morning;
+        const evidenceLine = act2Morning.dialogue.find(d => d.conditionalOnly === 'foundEvidence');
         this.assert(
             evidenceLine !== undefined,
-            'foundEvidence is used in markup_prep conditional dialogue'
+            'foundEvidence is used in act2_morning conditional dialogue'
         );
 
         // knowsTheTruth should be set in priya_ally
@@ -779,23 +737,32 @@ const TestRunner = {
             'knowsTheTruth is used in climax conditional dialogue'
         );
 
-        // survivedStakeholderMeeting should NOT exist anywhere
-        const allScenes = Object.values(STORY.scenes);
-        const hasSurvived = allScenes.some(s =>
-            s.setFlags && s.setFlags.survivedStakeholderMeeting !== undefined
-        );
-        this.assert(
-            !hasSurvived,
-            'survivedStakeholderMeeting flag is not set by any scene (removed)'
-        );
+        // All new flags exist in initialFlags
+        const expectedFlags = [
+            'alignedCivilRights', 'alignedDisability', 'alignedWatchdog',
+            'preparedTestimony', 'calledCommitteeMembers', 'ralliedCoalition',
+            'confrontedMindScale', 'focusedAmendment7', 'calledRecess',
+            'passedIntelToAllies', 'miracleVictory'
+        ];
+        for (const flag of expectedFlags) {
+            this.assert(
+                flag in STORY.initialFlags,
+                `${flag} exists in initialFlags`
+            );
+        }
     },
 
     // Test 11: Complete Ending Paths
     testEndingPaths() {
         console.log('\n--- Ending Path Tests ---');
 
-        // All five distinct ending paths
         const testCases = [
+            {
+                name: 'Miracle (Amendment 7 defeated)',
+                flags: { miracleVictory: true },
+                expectedEnding: 'ending_miracle',
+                expectedType: 'The Breakthrough'
+            },
             {
                 name: 'Status Quo (no allies)',
                 flags: { trustedElena: false, sharedWithPriya: false },
@@ -880,6 +847,371 @@ const TestRunner = {
             notClose !== undefined,
             'Even best ending acknowledges victory is small'
         );
+    },
+
+    // Test 12: Coalition Texture (Feature 3)
+    testCoalitionTexture() {
+        console.log('\n--- Coalition Texture Tests ---');
+
+        // New coalition scenes exist
+        const coalitionScenes = [
+            'coalition_call_intro', 'coalition_negotiate_amara',
+            'coalition_negotiate_kai', 'coalition_negotiate_diane',
+            'coalition_outcome_router', 'coalition_strong',
+            'coalition_moderate', 'coalition_weak'
+        ];
+        for (const sceneId of coalitionScenes) {
+            this.assert(
+                STORY.scenes[sceneId] !== undefined,
+                `${sceneId} scene exists`
+            );
+        }
+
+        // Amara negotiation has trustedElena conditional choice
+        const amara = STORY.scenes.coalition_negotiate_amara;
+        const elenaChoice = amara.choices.find(c => c.conditionalOnly === 'trustedElena');
+        this.assert(elenaChoice !== undefined, 'Amara negotiation has Elena-conditional choice');
+        this.assert(elenaChoice.setFlags.alignedCivilRights === true, 'Elena choice aligns civil rights');
+
+        // coalition_strong sets coalitionAligned
+        this.assert(
+            STORY.scenes.coalition_strong.setFlags.coalitionAligned === true,
+            'coalition_strong sets coalitionAligned'
+        );
+
+        // coalition_moderate sets coalitionAligned
+        this.assert(
+            STORY.scenes.coalition_moderate.setFlags.coalitionAligned === true,
+            'coalition_moderate sets coalitionAligned'
+        );
+
+        // coalition_weak does NOT set coalitionAligned
+        this.assert(
+            !STORY.scenes.coalition_weak.setFlags || !STORY.scenes.coalition_weak.setFlags.coalitionAligned,
+            'coalition_weak does NOT set coalitionAligned'
+        );
+
+        // Staffer scenes route to coalition_call_intro
+        this.assertEqual(
+            STORY.scenes.staffer_trust.nextScene,
+            'coalition_call_intro',
+            'staffer_trust routes to coalition_call_intro'
+        );
+        this.assertEqual(
+            STORY.scenes.staffer_dismiss.nextScene,
+            'coalition_call_intro',
+            'staffer_dismiss routes to coalition_call_intro'
+        );
+    },
+
+    // Test 13: Time Pressure Fork (Feature 2)
+    testTimePressureFork() {
+        console.log('\n--- Time Pressure Fork Tests ---');
+
+        // time_pressure_choice exists with 2 choices
+        const tpc = STORY.scenes.time_pressure_choice;
+        this.assert(tpc !== undefined, 'time_pressure_choice scene exists');
+        this.assertEqual(tpc.choices.length, 2, 'time_pressure_choice has 2 choices');
+
+        // Priya path leads to think_tank
+        const priyaChoice = tpc.choices.find(c => c.nextDialogue === 'think_tank');
+        this.assert(priyaChoice !== undefined, 'Time pressure has Priya path');
+
+        // Testimony path leads to testimony_prep and sets flag
+        const testimonyChoice = tpc.choices.find(c => c.nextDialogue === 'testimony_prep');
+        this.assert(testimonyChoice !== undefined, 'Time pressure has testimony path');
+        this.assert(
+            testimonyChoice.setFlags.preparedTestimony === true,
+            'Testimony choice sets preparedTestimony flag'
+        );
+
+        // testimony_prep and aftermath_testimony exist
+        this.assert(STORY.scenes.testimony_prep !== undefined, 'testimony_prep scene exists');
+        this.assert(STORY.scenes.aftermath_testimony !== undefined, 'aftermath_testimony scene exists');
+        this.assert(STORY.scenes.aftermath_priya !== undefined, 'aftermath_priya scene exists');
+
+        // aftermath_testimony leads to act2_morning (news already happened)
+        this.assertEqual(
+            STORY.scenes.aftermath_testimony.nextScene,
+            'act2_morning',
+            'aftermath_testimony leads to act2_morning'
+        );
+
+        // aftermath_priya leads to act2_morning (news already happened)
+        this.assertEqual(
+            STORY.scenes.aftermath_priya.nextScene,
+            'act2_morning',
+            'aftermath_priya leads to act2_morning'
+        );
+
+        // priya_ally routes to aftermath_priya
+        this.assertEqual(
+            STORY.scenes.priya_ally.nextScene,
+            'aftermath_priya',
+            'priya_ally leads to aftermath_priya'
+        );
+    },
+
+    // Test 14: Second Act (Feature 4)
+    testSecondAct() {
+        console.log('\n--- Second Act Tests ---');
+
+        // All act2 scenes exist
+        const act2Scenes = [
+            'act2_morning', 'act2_strategy_choice', 'act2_phones',
+            'act2_rally_coalition', 'act2_mindscale', 'act2_confront',
+            'act2_ignore', 'act2_final_prep'
+        ];
+        for (const sceneId of act2Scenes) {
+            this.assert(
+                STORY.scenes[sceneId] !== undefined,
+                `${sceneId} scene exists`
+            );
+        }
+
+        // news_fast routes to time_pressure_choice
+        this.assertEqual(
+            STORY.scenes.news_fast.nextScene,
+            'time_pressure_choice',
+            'news_fast leads to time_pressure_choice'
+        );
+
+        // news_slow routes to time_pressure_choice
+        this.assertEqual(
+            STORY.scenes.news_slow.nextScene,
+            'time_pressure_choice',
+            'news_slow leads to time_pressure_choice'
+        );
+
+        // Strategy choice has 2 options
+        const strategy = STORY.scenes.act2_strategy_choice;
+        this.assertEqual(strategy.choices.length, 2, 'act2_strategy_choice has 2 choices');
+
+        // Phones choice sets calledCommitteeMembers
+        const phonesChoice = strategy.choices.find(c => c.nextDialogue === 'act2_phones');
+        this.assert(
+            phonesChoice.setFlags.calledCommitteeMembers === true,
+            'Phones choice sets calledCommitteeMembers'
+        );
+
+        // Rally choice sets ralliedCoalition
+        const rallyChoice = strategy.choices.find(c => c.nextDialogue === 'act2_rally_coalition');
+        this.assert(
+            rallyChoice.setFlags.ralliedCoalition === true,
+            'Rally choice sets ralliedCoalition'
+        );
+
+        // MindScale confrontation sets flag
+        const confrontChoice = STORY.scenes.act2_mindscale.choices.find(c => c.nextDialogue === 'act2_confront');
+        this.assert(
+            confrontChoice.setFlags.confrontedMindScale === true,
+            'Confront choice sets confrontedMindScale'
+        );
+
+        // act2_final_prep leads to elena_check_router
+        this.assertEqual(
+            STORY.scenes.act2_final_prep.nextScene,
+            'elena_check_router',
+            'act2_final_prep leads to elena_check_router'
+        );
+    },
+
+    // Test 15: Interactive Hearing (Feature 1)
+    testInteractiveHearing() {
+        console.log('\n--- Interactive Hearing Tests ---');
+
+        // All hearing scenes exist
+        const hearingScenes = [
+            'markup_hearing_open', 'markup_hearing_comment_choice',
+            'comment_focused', 'comment_spread',
+            'markup_hearing_recess_choice', 'recess_lobby',
+            'recess_notes', 'markup_hearing_vote',
+            'miracle_check_router'
+        ];
+        for (const sceneId of hearingScenes) {
+            this.assert(
+                STORY.scenes[sceneId] !== undefined,
+                `${sceneId} scene exists`
+            );
+        }
+
+        // Comment choice sets focusedAmendment7
+        const commentChoice = STORY.scenes.markup_hearing_comment_choice;
+        this.assertEqual(commentChoice.choices.length, 2, 'Comment choice has 2 options');
+        const focusChoice = commentChoice.choices.find(c => c.nextDialogue === 'comment_focused');
+        this.assert(
+            focusChoice.setFlags.focusedAmendment7 === true,
+            'Focus choice sets focusedAmendment7'
+        );
+
+        // Recess choice has 2 options
+        const recessChoice = STORY.scenes.markup_hearing_recess_choice;
+        this.assertEqual(recessChoice.choices.length, 2, 'Recess choice has 2 options');
+
+        // Lobby sets calledRecess
+        const lobbyChoice = recessChoice.choices.find(c => c.nextDialogue === 'recess_lobby');
+        this.assert(
+            lobbyChoice.setFlags.calledRecess === true,
+            'Lobby choice sets calledRecess'
+        );
+
+        // Notes sets passedIntelToAllies
+        const notesChoice = recessChoice.choices.find(c => c.nextDialogue === 'recess_notes');
+        this.assert(
+            notesChoice.setFlags.passedIntelToAllies === true,
+            'Notes choice sets passedIntelToAllies'
+        );
+
+        // markup_hearing_vote leads to miracle_check_router
+        this.assertEqual(
+            STORY.scenes.markup_hearing_vote.nextScene,
+            'miracle_check_router',
+            'markup_hearing_vote leads to miracle_check_router'
+        );
+    },
+
+    // Test 16: Miracle Path
+    testMiraclePath() {
+        console.log('\n--- Miracle Path Tests ---');
+
+        // markup_reconsideration exists and sets miracleVictory
+        const recon = STORY.scenes.markup_reconsideration;
+        this.assert(recon !== undefined, 'markup_reconsideration scene exists');
+        this.assert(
+            recon.setFlags.miracleVictory === true,
+            'markup_reconsideration sets miracleVictory'
+        );
+
+
+        // climax_miracle exists and routes to ending_check
+        const cm = STORY.scenes.climax_miracle;
+        this.assert(cm !== undefined, 'climax_miracle scene exists');
+        this.assertEqual(cm.nextScene, 'ending_check', 'climax_miracle leads to ending_check');
+
+        // Miracle reconsideration: 5 swings (margin 1) + all conditions
+        const miracleFlags = {
+            trustedElena: true, elenaBurned: false, sharedWithPriya: true,
+            seizedMoment: true, coalitionAligned: true, focusedAmendment7: true,
+            calledRecess: true, calledCommitteeMembers: true
+        };
+        this.assertEqual(
+            routeScene('miracle_check', miracleFlags),
+            'markup_reconsideration',
+            'Full miracle conditions (5 swings) -> markup_reconsideration'
+        );
+
+        // confrontedMindScale no longer produces extra swing — still routes to reconsideration
+        const withConfront = { ...miracleFlags, confrontedMindScale: true };
+        this.assertEqual(
+            routeScene('miracle_check', withConfront),
+            'markup_reconsideration',
+            'confrontedMindScale does not change routing (still 5 swings)'
+        );
+
+        // Missing trustedElena (5 swings, margin 1 but no miracle conditions) -> climax
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, trustedElena: false }),
+            'climax',
+            'Without trustedElena (5 swings) -> climax (no miracle)'
+        );
+
+        // Missing sharedWithPriya -> no miracle (also fewer swings, passes)
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, sharedWithPriya: false }),
+            'climax',
+            'Without sharedWithPriya -> climax (no miracle)'
+        );
+
+        // Missing seizedMoment -> no miracle (fewer swings, passes comfortably)
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, seizedMoment: false }),
+            'climax',
+            'Without seizedMoment -> climax (no miracle)'
+        );
+
+        // Missing coalitionAligned -> no miracle
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, coalitionAligned: false }),
+            'climax',
+            'Without coalitionAligned -> climax (no miracle)'
+        );
+
+        // Missing focusedAmendment7 -> no miracle
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, focusedAmendment7: false }),
+            'climax',
+            'Without focusedAmendment7 -> climax (no miracle)'
+        );
+
+        // Elena burned -> no miracle
+        this.assertEqual(
+            routeScene('miracle_check', { ...miracleFlags, elenaBurned: true }),
+            'climax',
+            'With elenaBurned -> climax (no miracle)'
+        );
+
+        // 3 swings (margin 5, too comfortable) -> climax even with all conditions
+        const comfortableFlags = {
+            trustedElena: true, elenaBurned: false, sharedWithPriya: true,
+            seizedMoment: true, coalitionAligned: true, focusedAmendment7: true
+        };
+        this.assertEqual(
+            routeScene('miracle_check', comfortableFlags),
+            'climax',
+            '3 swings (margin 5) -> climax (passes too comfortably for miracle)'
+        );
+    },
+
+    // Test 17: Vote Count
+    testVoteCount() {
+        console.log('\n--- Vote Count Tests ---');
+
+        // 25-member committee: base 18 yes, 7 no
+        const defaultResult = getAmendment7Result({});
+        this.assertEqual(defaultResult.yesVotes, 18, 'Default: 18 yes votes');
+        this.assertEqual(defaultResult.noVotes, 7, 'Default: 7 no votes');
+        this.assertEqual(defaultResult.margin, 11, 'Default: margin 11');
+        this.assert(defaultResult.passed, 'Default: amendment passes');
+
+        // seizedMoment only: 17-8
+        const seizedResult = getAmendment7Result({ seizedMoment: true });
+        this.assertEqual(seizedResult.yesVotes, 17, 'Seized moment: 17 yes votes');
+        this.assertEqual(seizedResult.swings, 1, 'Seized moment: 1 swing');
+
+        // sharedWithPriya only: 17-8
+        const priyaResult = getAmendment7Result({ sharedWithPriya: true });
+        this.assertEqual(priyaResult.yesVotes, 17, 'Priya: 17 yes votes');
+
+        // Combination: calledRecess + seizedMoment = 2 swings
+        const lobbyResult = getAmendment7Result({ calledRecess: true, seizedMoment: true });
+        this.assertEqual(lobbyResult.swings, 2, 'Recess + seized = 2 swings');
+
+        // Combination: passedIntelToAllies + coalitionAligned = 1 swing
+        const notesResult = getAmendment7Result({ passedIntelToAllies: true, coalitionAligned: true });
+        this.assertEqual(notesResult.swings, 1, 'Notes + coalition = 1 swing');
+
+        // preparedTestimony + focusedAmendment7 = 2 swings
+        const testimonyResult = getAmendment7Result({ preparedTestimony: true, focusedAmendment7: true });
+        this.assertEqual(testimonyResult.swings, 2, 'Testimony + focus = 2 swings');
+
+        // 5 swings: barely passes (margin 1)
+        const fiveSwings = getAmendment7Result({
+            seizedMoment: true, sharedWithPriya: true, focusedAmendment7: true,
+            calledRecess: true, calledCommitteeMembers: true
+        });
+        this.assertEqual(fiveSwings.swings, 5, '5 swings scenario');
+        this.assertEqual(fiveSwings.margin, 1, '5 swings: margin 1');
+        this.assert(fiveSwings.passed, '5 swings: still passes');
+
+        // confrontedMindScale does NOT add a swing (max stays at 5)
+        const withConfront = getAmendment7Result({
+            seizedMoment: true, sharedWithPriya: true, focusedAmendment7: true,
+            calledRecess: true, calledCommitteeMembers: true,
+            confrontedMindScale: true, coalitionAligned: true
+        });
+        this.assertEqual(withConfront.swings, 5, 'confrontedMindScale does not add swing');
+        this.assertEqual(withConfront.margin, 1, 'Max swings still margin 1');
+        this.assert(withConfront.passed, 'Amendment always passes (max 5 swings)');
     }
 };
 

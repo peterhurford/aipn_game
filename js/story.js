@@ -16,7 +16,9 @@ const LOCATIONS = {
     conference: { location: 'Conference Room B-7', background: 'bg-conference' },
     thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
     mall: { location: 'National Mall at Night', background: 'bg-mall' },
-    capitol: { location: 'Ashburn Building - Committee Room', background: 'bg-capitol' }
+    capitol: { location: 'Ashburn Building - Committee Room', background: 'bg-capitol' },
+    officeThreeDays: { location: 'AAPC Office - Three Days Before Markup', background: 'bg-office' },
+    officeOneDayBefore: { location: 'AAPC Office - One Day Before Markup', background: 'bg-office' }
 };
 
 // Speaker style configuration - maps speakers to CSS classes
@@ -26,7 +28,10 @@ const SPEAKER_STYLES = {
     'Elena': 'speaker-elena',
     'Priya': 'speaker-priya',
     'Sarah': 'speaker-sarah',
-    'Phone': 'speaker-phone'
+    'Phone': 'speaker-phone',
+    'Amara': 'speaker-amara',
+    'Kai': 'speaker-kai',
+    'Diane': 'speaker-diane'
 };
 
 const SPEAKER_GROUPS = {
@@ -47,54 +52,60 @@ function getSpeakerClass(speaker) {
     return 'speaker-character';
 }
 
-// Shared dialogue fragments - reusable dialogue blocks
-const DIALOGUE_FRAGMENTS = {
-    priyaDiscussion: [
-        {
-            speaker: 'You',
-            text: 'Someone told me to talk to Priya Sharma.',
-            portrait: null
-        },
-        {
-            speaker: 'Sarah',
-            text: "Priya? Good luck. She doesn't really... do meetings anymore.",
-            portrait: null
-        },
-        {
-            speaker: 'You',
-            text: 'What does she do?',
-            portrait: null
-        },
-        {
-            speaker: 'Sarah',
-            text: "Drinks, mostly. But she knows everyone. If she'll talk to you.",
-            portrait: null
-        }
-    ]
-};
+// (Dialogue fragments removed — Priya's introduction now happens naturally in the time pressure fork)
 
 // Vote count helper - computes Amendment 7 results based on flags
-// Each flag swings one vote; when both swing, one member abstains (21 total)
 function getAmendment7Result(flags) {
-    const swings = (flags.seizedMoment ? 1 : 0) + (flags.sharedWithPriya ? 1 : 0);
-    const yesVotes = 13 - swings;
-    const total = 22 - (swings === 2 ? 1 : 0);
-    const noVotes = total - yesVotes;
+    let swings = 0;
+    // Core flags
+    if (flags.seizedMoment) swings++;
+    if (flags.sharedWithPriya) swings++;
+    // Hearing choices
+    if (flags.focusedAmendment7) swings++;
+    if (flags.calledRecess && flags.seizedMoment) swings++;  // lobby works with public pressure
+    if (flags.passedIntelToAllies && flags.coalitionAligned) swings++;  // notes work with aligned coalition
+    // Second act
+    if (flags.preparedTestimony && flags.focusedAmendment7) swings++;  // testimony + focus = compelling
+    if (flags.calledCommitteeMembers && flags.seizedMoment) swings++;  // phones work with pressure
+    // Note: confrontedMindScale affects narrative but doesn't directly swing votes
+
+    // 25-member committee. Industry starts with 18 yes votes (strong majority).
+    // Each swing flips one yes voter to no.
+    const yesVotes = 18 - swings;
+    const noVotes = 7 + swings;
     const margin = yesVotes - noVotes;
-    const NUMBER_WORDS = { 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four' };
-    return { yesVotes, noVotes, margin, marginWord: NUMBER_WORDS[margin] || String(margin) };
+    const passed = margin > 0;
+    const NUMBER_WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven' };
+    return { yesVotes, noVotes, margin, passed, marginWord: NUMBER_WORDS[Math.abs(margin)] || String(Math.abs(margin)), swings };
 }
 
 // Conditional routing rules for router scenes
 const ROUTING_RULES = {
-    coalition_focus: {
+    coalition_outcome: {
         rules: [
             {
-                condition: (flags) => flags.trustedElena,
-                target: 'coalition_focus_aligned'
+                // Promises conflict: leading with Diane's data breaks promises to Amara (broad statement) and Kai (lead signatory)
+                condition: (flags) => {
+                    let aligned = 0;
+                    if (flags.alignedCivilRights && !(flags.promisedBroadStatement && flags.alignedWatchdog)) aligned++;
+                    if (flags.alignedDisability && !(flags.promisedLeadSignatory && flags.alignedWatchdog)) aligned++;
+                    if (flags.alignedWatchdog) aligned++;
+                    return aligned >= 3;
+                },
+                target: 'coalition_strong'
+            },
+            {
+                condition: (flags) => {
+                    let aligned = 0;
+                    if (flags.alignedCivilRights && !(flags.promisedBroadStatement && flags.alignedWatchdog)) aligned++;
+                    if (flags.alignedDisability && !(flags.promisedLeadSignatory && flags.alignedWatchdog)) aligned++;
+                    if (flags.alignedWatchdog) aligned++;
+                    return aligned >= 2;
+                },
+                target: 'coalition_moderate'
             }
         ],
-        default: 'coalition_focus_scattered'
+        default: 'coalition_weak'
     },
     elena_check: {
         rules: [
@@ -105,7 +116,25 @@ const ROUTING_RULES = {
             }
         ],
         // Otherwise proceed normally to markup
-        default: 'markup_hearing'
+        default: 'markup_hearing_open'
+    },
+    miracle_check: {
+        rules: [
+            {
+                // Narrow pass + all miracle conditions → Torres moves to reconsider
+                // Max swings = 5, so amendment always passes (margin 1 at best)
+                // Miracle is the ONLY way to defeat Amendment 7
+                condition: (flags) => {
+                    const { margin } = getAmendment7Result(flags);
+                    return margin <= 2 &&
+                           flags.trustedElena && !flags.elenaBurned &&
+                           flags.sharedWithPriya && flags.seizedMoment &&
+                           flags.coalitionAligned && flags.focusedAmendment7;
+                },
+                target: 'markup_reconsideration'
+            }
+        ],
+        default: 'climax'
     },
     climax_choice_check: {
         rules: [
@@ -135,6 +164,11 @@ const ROUTING_RULES = {
     },
     ending_check: {
         rules: [
+            {
+                // Miracle victory = Amendment 7 defeated via reconsideration
+                condition: (flags) => flags.miracleVictory,
+                target: 'ending_miracle'
+            },
             {
                 // Both allies + negotiated = Incremental victory
                 condition: (flags) => flags.trustedElena && !flags.elenaBurned && flags.sharedWithPriya && flags.negotiated,
@@ -196,7 +230,25 @@ const STORY = {
         walkedAway: false,
         repliedJournalist: false,
         repliedIntern: false,
-        repliedListserv: false
+        repliedListserv: false,
+        // Coalition partners
+        alignedCivilRights: false,
+        alignedDisability: false,
+        alignedWatchdog: false,
+        promisedBroadStatement: false,
+        promisedLeadSignatory: false,
+        // Time pressure
+        preparedTestimony: false,
+        // Second act
+        calledCommitteeMembers: false,
+        ralliedCoalition: false,
+        confrontedMindScale: false,
+        // Hearing
+        focusedAmendment7: false,
+        calledRecess: false,
+        passedIntelToAllies: false,
+        // Miracle
+        miracleVictory: false
     },
 
     // Scene definitions
@@ -232,12 +284,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'The one about the other stakeholder meeting. To prepare for the listening session. Before the comment period.',
+                    text: 'The AI bill roundtable. The one where we get one seat and industry gets three.',
                     portrait: null
                 },
                 {
                     speaker: 'You',
-                    text: 'Ah. That one.',
+                    text: 'That seems fair.',
                     portrait: null
                 },
                 {
@@ -368,7 +420,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Meanwhile, your coalition spends six months arguing about whether to call it "AI safety" or "AI accountability."',
+                    text: 'Meanwhile, your coalition spends six months arguing about whether to call it "AI safety" or "AI security."',
                     portrait: 'portrait-elena'
                 },
                 {
@@ -569,7 +621,7 @@ const STORY = {
             ],
             choices: [
                 {
-                    text: 'Actually, I have concerns about the timeline...',
+                    text: 'The compliance deadline doesn\'t match the implementation schedule...',
                     setFlags: { spokeUp: true },
                     nextDialogue: 'stakeholder_speak'
                 },
@@ -586,22 +638,27 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'You',
-                    text: 'The comment period closes in six weeks. If we\'re still finalizing the framework next month, we\'ll miss it.',
+                    text: 'The implementation schedule gives companies eighteen months. But the compliance deadline is six months after that. That\'s two full years before anyone checks anything.',
                     portrait: null
                 },
                 {
                     speaker: 'Industry Rep',
-                    text: '"That\'s a fair point. Perhaps we could request an extension—"',
+                    text: '"Implementation timelines are standard. Companies need runway to—"',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'The gap is deliberate. It lets companies deploy without oversight for two years and call it "phased implementation."',
                     portrait: null
                 },
                 {
                     speaker: 'Facilitator',
-                    text: '"Great idea. I\'ll note that as an action item."',
+                    text: '"Great point. I\'ll note that for the working group."',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The meeting ends. You will never hear about that action item again.',
+                    text: 'The meeting ends. You will never hear about that note again.',
                     portrait: null
                 }
             ],
@@ -713,7 +770,7 @@ const STORY = {
                     portrait: null
                 }
             ],
-            nextScene: 'coalition_call'
+            nextScene: 'coalition_call_intro'
         },
 
         staffer_dismiss: {
@@ -742,11 +799,12 @@ const STORY = {
                     portrait: null
                 }
             ],
-            nextScene: 'coalition_call'
+            nextScene: 'coalition_call_intro'
         },
 
-        coalition_call: {
-            id: 'coalition_call',
+        // Coalition texture: three named partners to negotiate with
+        coalition_call_intro: {
+            id: 'coalition_call_intro',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
@@ -755,43 +813,8 @@ const STORY = {
                     portrait: null
                 },
                 {
-                    speaker: 'Voice 1',
-                    text: '"We need to talk about the compliance amendments. The testing language in 7 is—"',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 2',
-                    text: '"Forget 7. Amendment 4 guts the bias audit requirements. That\'s our issue."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 3',
-                    text: '"Can we talk about opposing the whole bill? Because once we start picking and choosing amendments, we\'ve already lost."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"We can\'t oppose the whole bill. We spent two years getting it introduced."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 4',
-                    text: '"The disability community has been fighting for the data access provision since last session. We are not giving that up to chase your priorities."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 2',
-                    text: '"Nobody\'s saying give it up. We\'re saying we need a unified message."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 4',
-                    text: '"A unified message that somehow always ends up being your message."',
-                    portrait: null
-                },
-                {
                     speaker: 'Narrator',
-                    text: 'The call has been going for ninety minutes. You\'re no closer to a strategy than when you started.',
+                    text: 'The call has been going for ninety minutes. Someone proposes a working group to draft the framework for the coalition response. You\'re no closer to a strategy than when you started.',
                     portrait: null
                 },
                 {
@@ -802,85 +825,165 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Twelve organizations. Twelve priorities. Two weeks until markup.',
+                    text: 'Forget the full coalition. Three organizations matter. Get two of the three on board and we have a real coalition.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Amara at the Center for Digital Civil Rights. She cares about bias audits—Amendment 4 would gut them.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Kai at the Accessible Technology Coalition. He\'s been fighting for the data access provision—Amendment 5 would kill it.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'And Diane at TechWatch Institute. She\'s got three years of MindScale compliance data. Wants it front and center.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Elena\'s intel about Amendment 7 is your card. If you trusted her.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Talk to them. One at a time.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_amara'
+        },
+
+        coalition_negotiate_amara: {
+            id: 'coalition_negotiate_amara',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Amara',
+                    text: 'Amendment 4 would strip the bias audit requirement. If that passes, my community loses the only accountability mechanism in the bill.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'Why should I put my resources behind Amendment 7 when my issue is Amendment 4?',
                     portrait: null
                 }
             ],
             choices: [
                 {
-                    text: 'We need to focus. Pick one fight and win it.',
-                    nextDialogue: 'coalition_focus_router'
+                    text: 'Amendment 4 is already dead—I have intel. Focus on 7.',
+                    setFlags: { alignedCivilRights: true },
+                    nextDialogue: 'coalition_negotiate_kai',
+                    conditionalOnly: 'trustedElena'
                 },
                 {
-                    text: 'Every amendment matters. We fight them all.',
-                    nextDialogue: 'coalition_broad'
+                    text: 'The joint statement covers both. Amendment 4 and 7 together.',
+                    setFlags: { alignedCivilRights: true, promisedBroadStatement: true },
+                    nextDialogue: 'coalition_negotiate_kai'
+                },
+                {
+                    text: 'Amendment 7 has to be the priority. Can\'t promise more.',
+                    nextDialogue: 'coalition_negotiate_kai'
                 }
             ]
         },
 
-        // Route based on whether you have Elena's insider intel
-        coalition_focus_router: {
-            id: 'coalition_focus_router',
-            isRouter: true,
-            routerId: 'coalition_focus'
-        },
-
-        // Focus + Elena's intel = you know exactly where to aim
-        coalition_focus_aligned: {
-            id: 'coalition_focus_aligned',
+        coalition_negotiate_kai: {
+            id: 'coalition_negotiate_kai',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
-                    speaker: 'You',
-                    text: 'You unmute.',
+                    speaker: 'Kai',
+                    text: 'The disability community has been fighting for the data access provision since last session. Amendment 5 would wipe it out.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Kai',
+                    text: 'I need visibility. My coalition needs to know they\'re part of this, not just a footnote.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Your coalition gets lead signatory.',
+                    setFlags: { alignedDisability: true, promisedLeadSignatory: true },
+                    nextDialogue: 'coalition_negotiate_diane'
+                },
+                {
+                    text: 'Can\'t make promises. But winning on 7 makes everything possible.',
+                    nextDialogue: 'coalition_negotiate_diane'
+                }
+            ]
+        },
+
+        coalition_negotiate_diane: {
+            id: 'coalition_negotiate_diane',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Diane',
+                    text: 'I\'ve got three years of MindScale compliance data. Incident reports, deployment timelines, internal audit gaps.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Diane',
+                    text: 'I want it front and center. Not buried in an appendix. Not a footnote. The lead evidence.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She mutes and whispers to you.',
                     portrait: null,
-                    isAction: true
+                    isAction: true,
+                    conditionalOnly: 'promisedBroadStatement'
                 },
                 {
-                    speaker: 'You',
-                    text: 'Amendment 7. That\'s where the testing requirements get gutted. Everything else is a distraction.',
-                    portrait: null
+                    speaker: 'Sarah',
+                    text: 'If we lead with Diane\'s data, the statement is about MindScale, not about bias audits. Amara will say we buried her issue.',
+                    portrait: null,
+                    conditionalOnly: 'promisedBroadStatement'
                 },
                 {
-                    speaker: 'Voice 2',
-                    text: '"What about the bias provisions? We can\'t just—"',
-                    portrait: null
+                    speaker: 'Sarah',
+                    text: 'She mutes and whispers to you.',
+                    portrait: null,
+                    isAction: true,
+                    conditionalOnly: 'promisedLeadSignatory'
                 },
                 {
-                    speaker: 'You',
-                    text: 'If Amendment 7 passes, the whole enforcement mechanism becomes voluntary. Your bias audits become suggestions. Nobody has to do anything.',
-                    portrait: null
+                    speaker: 'Sarah',
+                    text: 'If Diane\'s data leads, Kai\'s coalition is a footnote. That\'s exactly what he said he wouldn\'t accept.',
+                    portrait: null,
+                    conditionalOnly: 'promisedLeadSignatory'
+                }
+            ],
+            choices: [
+                {
+                    text: 'Your data leads the testimony.',
+                    setFlags: { alignedWatchdog: true },
+                    nextDialogue: 'coalition_outcome_router'
                 },
                 {
-                    speaker: 'Narrator',
-                    text: 'Silence on the line.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 4',
-                    text: '"...How do you know this?"',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'I know. That\'s what matters right now.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"Amendment 7 it is. I\'ll draft the joint statement tonight."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 2',
-                    text: '"I want the bias language in the statement."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"Fine. But Amendment 7 is the headline."',
-                    portrait: null
-                },
+                    text: 'Coalition speaks as one. Unified message, data included.',
+                    nextDialogue: 'coalition_outcome_router'
+                }
+            ]
+        },
+
+        coalition_outcome_router: {
+            id: 'coalition_outcome_router',
+            isRouter: true,
+            routerId: 'coalition_outcome'
+        },
+
+        coalition_strong: {
+            id: 'coalition_strong',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
                 {
                     speaker: 'Sarah',
                     text: 'She stares at you.',
@@ -889,121 +992,63 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'That\'s the first time I\'ve seen this coalition agree on anything in two years.',
+                    text: 'Three organizations. One message. Kill Amendment 7.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amara\'s civil rights network. Kai\'s disability coalition. Diane\'s compliance data. All pointed at the same target.',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'I need a drink.',
+                    text: 'That\'s the first time I\'ve seen this coalition agree on anything in two years.',
                     portrait: null
-                },
-                ...DIALOGUE_FRAGMENTS.priyaDiscussion
+                }
             ],
             setFlags: { coalitionAligned: true },
             nextScene: 'inbox_triage'
         },
 
-        // Focus + no Elena intel = you try but can't agree on what
-        coalition_focus_scattered: {
-            id: 'coalition_focus_scattered',
+        coalition_moderate: {
+            id: 'coalition_moderate',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
-                    speaker: 'You',
-                    text: 'You unmute.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'You',
-                    text: 'We need to pick one amendment. The worst one. Put everything behind killing it.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 2',
-                    text: '"Which one?"',
+                    speaker: 'Sarah',
+                    text: 'Two out of three. Not bad.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You don\'t have an answer for that.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 3',
-                    text: '"This is the problem. Everyone says \'focus\' but nobody agrees on what."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"Top three amendments. We divide into working groups."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 4',
-                    text: '"So now we have three messages instead of twelve. Progress."',
+                    textFn: (flags) => {
+                        const amaraBroken = flags.alignedCivilRights && flags.promisedBroadStatement && flags.alignedWatchdog;
+                        const kaiBroken = flags.alignedDisability && flags.promisedLeadSignatory && flags.alignedWatchdog;
+                        if (amaraBroken) return 'Amara hung up. You promised to keep Amendment 4 in the statement, then let Diane\'s data take the lead. But Kai and Diane are in.';
+                        if (kaiBroken) return 'Kai walked. You promised him lead signatory, then gave Diane top billing. But Amara and Diane are in.';
+                        if (!flags.alignedCivilRights) return 'Amara\'s civil rights network isn\'t on board. But Kai and Diane are in.';
+                        if (!flags.alignedDisability) return 'Kai\'s disability coalition walked. But Amara and Diane are in.';
+                        return 'Diane wanted more visibility for her data. But Amara and Kai are in.';
+                    },
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'She mutes again.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Better than last week. I\'ll take it.',
+                    text: 'Two organizations and a joint statement. We can work with this.',
                     portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'I need a drink.',
-                    portrait: null
-                },
-                ...DIALOGUE_FRAGMENTS.priyaDiscussion
+                }
             ],
+            setFlags: { coalitionAligned: true },
             nextScene: 'inbox_triage'
         },
 
-        // Fight everything = coalition scatters
-        coalition_broad: {
-            id: 'coalition_broad',
+        coalition_weak: {
+            id: 'coalition_weak',
             ...LOCATIONS.officeCoalition,
             dialogue: [
                 {
-                    speaker: 'You',
-                    text: 'You unmute.',
-                    portrait: null,
-                    isAction: true
-                },
-                {
-                    speaker: 'You',
-                    text: 'We fight every amendment. All of them. Nobody\'s issue gets left behind.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 4',
-                    text: '"Finally. Someone who gets it."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"That\'s not a strategy. That\'s a wish list."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 3',
-                    text: '"It\'s a principle."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Voice 1',
-                    text: '"Great. Principles and four dollars will get you a coffee in this town."',
-                    portrait: null
-                },
-                {
                     speaker: 'Narrator',
-                    text: 'The call ends with everyone agreeing to disagree. Testimony is divided by organization. No joint statement. No unified message.',
+                    text: 'Twelve priorities. No joint statement. No unified message.',
                     portrait: null
                 },
                 {
@@ -1015,8 +1060,7 @@ const STORY = {
                     speaker: 'Sarah',
                     text: 'I need a drink.',
                     portrait: null
-                },
-                ...DIALOGUE_FRAGMENTS.priyaDiscussion
+                }
             ],
             nextScene: 'inbox_triage'
         },
@@ -1028,7 +1072,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'You have thirteen minutes before Priya. You open your inbox. 97 unread.',
+                    text: 'You have thirteen minutes before your next decision. You open your inbox. 97 unread.',
                     portrait: null
                 },
                 {
@@ -1111,12 +1155,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    text: 'Clock\'s ticking. You\'ve got a decision to make.',
                     portrait: null
                 }
             ],
             setFlags: { repliedJournalist: true },
-            nextScene: 'think_tank'
+            nextScene: 'news_break'
         },
 
         // Intern path - the question is actually good
@@ -1146,12 +1190,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    text: 'Clock\'s ticking. You\'ve got a decision to make.',
                     portrait: null
                 }
             ],
             setFlags: { repliedIntern: true },
-            nextScene: 'think_tank'
+            nextScene: 'news_break'
         },
 
         // Listserv path - arguing about definitions
@@ -1181,12 +1225,138 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Go. Priya doesn\'t do "fashionably late."',
+                    text: 'Clock\'s ticking. You\'ve got a decision to make.',
                     portrait: null
                 }
             ],
             setFlags: { repliedListserv: true },
-            nextScene: 'think_tank'
+            nextScene: 'news_break'
+        },
+
+        // Time pressure fork - choose Priya OR testimony, can't do both
+        time_pressure_choice: {
+            id: 'time_pressure_choice',
+            ...LOCATIONS.officeNextMorning,
+            dialogue: [
+                {
+                    speaker: 'Sarah',
+                    text: 'She drops a stack of paper on your desk.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Written testimony has to be filed with the committee forty-eight hours before markup. That deadline is tomorrow morning.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You look at what you have. Seven pages of notes. No argument. No structure. If this goes in as-is, Peters will wave it around and call it proof that opponents have nothing substantive to say.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Priya called. She\'ll see you at 5, but she\'s flying to San Francisco tomorrow. Tonight is the only window.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Elena said to talk to Priya. Priya ran coalitions for twelve years. She knows people on the committee. Whether she\'ll help is another question.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'But if you spend the evening across town, the testimony goes in as Sarah\'s draft. Competent. Forgettable. The kind of thing committee members skim and set aside.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'You can\'t do both. Not tonight.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Go see Priya. Elena thinks she can help.',
+                    nextDialogue: 'think_tank'
+                },
+                {
+                    text: 'Lock the door. Write testimony that makes them uncomfortable.',
+                    setFlags: { preparedTestimony: true },
+                    nextDialogue: 'testimony_prep'
+                }
+            ]
+        },
+
+        // Testimony prep path - alternative to visiting Priya
+        testimony_prep: {
+            id: 'testimony_prep',
+            ...LOCATIONS.officeLate,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You close the door. Seven drafts over four hours.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The first draft is angry. The second is too technical. The third reads like a press release. The fourth is boring.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Diane\'s three years of MindScale compliance data goes in. Incident reports. Deployment timelines.',
+                    portrait: null,
+                    conditionalOnly: 'alignedWatchdog'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The timeline discrepancy from the stakeholder meeting. The compliance deadline that doesn\'t match the implementation schedule. That goes in too.',
+                    portrait: null,
+                    conditionalOnly: 'foundEvidence'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The Titan 4 hook. A patient in the ICU because nobody was required to test anything. That\'s your opening.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The fifth draft is close. The sixth is almost there. The seventh is done.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She reads it. Twice.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'This is good. Actually good.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'aftermath_testimony'
+        },
+
+        aftermath_testimony: {
+            id: 'aftermath_testimony',
+            ...LOCATIONS.officeLate,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You finished the testimony. Priya\'s office is dark by now.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You chose the argument over the ally. Whether that was the right call depends on things you can\'t know yet.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_morning'
         },
 
         think_tank: {
@@ -1383,7 +1553,7 @@ const STORY = {
                 }
             ],
             setFlags: { knowsTheTruth: true },
-            nextScene: 'news_break'
+            nextScene: 'aftermath_priya'
         },
 
         priya_cautious: {
@@ -1407,7 +1577,39 @@ const STORY = {
                     portrait: null
                 }
             ],
-            nextScene: 'news_break'
+            nextScene: 'aftermath_priya'
+        },
+
+        aftermath_priya: {
+            id: 'aftermath_priya',
+            ...LOCATIONS.officeNight,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: '124 unread. Webb called twice. The testimony will have to be Sarah\'s draft.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The trip across town took longer than the conversation. By the time you\'re back, the evening is gone and the testimony is still a mess.',
+                    portrait: null,
+                    conditionalOnly: '!sharedWithPriya'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You chose the ally over the argument. Whether that was the right call depends on things you can\'t know yet.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You went looking for an ally and came back empty-handed.',
+                    portrait: null,
+                    conditionalOnly: '!sharedWithPriya'
+                }
+            ],
+            nextScene: 'act2_morning'
         },
 
         // Breaking news creates a narrow window of relevance
@@ -1549,25 +1751,13 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Your phone buzzes. Priya.',
-                    portrait: null,
-                    conditionalOnly: 'sharedWithPriya'
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"Saw the statement. Representative Chen\'s office is citing it in her floor remarks."',
-                    portrait: null,
-                    conditionalOnly: 'sharedWithPriya'
-                },
-                {
-                    speaker: 'Narrator',
                     text: 'Marcus Webb\'s The Capitol Gazette story quotes AAPC twice. The background paid off.',
                     portrait: null,
                     conditionalOnly: 'repliedJournalist'
                 }
             ],
             setFlags: { seizedMoment: true },
-            nextScene: 'markup_prep'
+            nextScene: 'time_pressure_choice'
         },
 
         news_slow: {
@@ -1622,12 +1812,13 @@ const STORY = {
                     portrait: null
                 }
             ],
-            nextScene: 'markup_prep'
+            nextScene: 'time_pressure_choice'
         },
 
-        markup_prep: {
-            id: 'markup_prep',
-            ...LOCATIONS.officeLate,
+        // === ACT 2: Three days before markup ===
+        act2_morning: {
+            id: 'act2_morning',
+            ...LOCATIONS.officeThreeDays,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1669,28 +1860,261 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: '"Peters is whipping votes for Amendment 7. He thinks he has 13. You need one more no."',
+                    text: '"Peters is whipping votes for Amendment 7. He thinks he has the votes. Comfortable margin."',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'She reads over your shoulder.',
-                    portrait: null,
-                    isAction: true,
-                    conditionalOnly: 'trustedElena'
+                    text: 'Two days of prep. Use them.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_strategy_choice'
+        },
+
+        act2_strategy_choice: {
+            id: 'act2_strategy_choice',
+            ...LOCATIONS.officeThreeDays,
+            dialogue: [
+                {
+                    speaker: 'Sarah',
+                    text: 'Two options. We cold-call committee offices ourselves—Torres\'s chief of staff might pick up. Or we send the coalition in. Every committee office gets a hundred emails and twenty phone calls by morning.',
+                    portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Your lobbyist friend again?',
-                    portrait: null,
-                    conditionalOnly: 'trustedElena'
+                    text: 'Can\'t do both well. Not in two days.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Call Torres\'s office directly. Personal and targeted.',
+                    setFlags: { calledCommitteeMembers: true },
+                    nextDialogue: 'act2_phones'
                 },
                 {
-                    speaker: 'You',
-                    text: 'She\'s not my friend. But she\'s useful.',
+                    text: 'Unleash the coalition. Volume and pressure.',
+                    setFlags: { ralliedCoalition: true },
+                    nextDialogue: 'act2_rally_coalition'
+                }
+            ]
+        },
+
+        act2_phones: {
+            id: 'act2_phones',
+            ...LOCATIONS.officeThreeDays,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Six hours on the phone. Four offices, two voicemails, one real conversation.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Torres\'s chief of staff actually listens. Twenty minutes. She asks good questions.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The Titan 4 argument lands. A patient in the ICU because nobody was required to test. She writes it down.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Webb is writing a follow-up piece. Your name comes up as a source. That helps.',
+                    portrait: null,
+                    conditionalOnly: 'repliedJournalist'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She hangs up the last call.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Torres is a maybe. Better than a no.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_mindscale'
+        },
+
+        act2_rally_coalition: {
+            id: 'act2_rally_coalition',
+            ...LOCATIONS.officeThreeDays,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Last-minute coalition coordination. Emails, calls, shared documents flying back and forth.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition moves as one. Amara\'s civil rights network floods inboxes. Kai\'s disability groups call offices. Diane\'s data gets cited in three op-eds.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Without a unified coalition, it\'s scattered. Half-hearted effort. Three different asks from three different organizations.',
+                    portrait: null,
+                    conditionalOnly: '!coalitionAligned'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She closes her laptop.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    textFn: (flags) => flags.coalitionAligned
+                        ? 'That was coordinated. For once.'
+                        : 'Well. We tried.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_mindscale'
+        },
+
+        act2_mindscale: {
+            id: 'act2_mindscale',
+            ...LOCATIONS.officeOneDayBefore,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'One day before markup. MindScale drops a 30-page "voluntary safety framework." Glossy. Endorsed by two former regulators.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Half the committee will read the executive summary and call it a day.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Elena texts: "This is the counter-move."',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
+                }
+            ],
+            choices: [
+                {
+                    text: 'Respond point by point.',
+                    setFlags: { confrontedMindScale: true },
+                    nextDialogue: 'act2_confront'
+                },
+                {
+                    text: 'Ignore it. Don\'t dignify it.',
+                    nextDialogue: 'act2_ignore'
+                }
+            ]
+        },
+
+        act2_confront: {
+            id: 'act2_confront',
+            ...LOCATIONS.officeOneDayBefore,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You and Sarah write a one-page fact-check overnight. Point by point. Every claim, every citation, every evasion.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Diane\'s compliance data fills the gaps. Three years of MindScale\'s own reporting contradicting their "voluntary framework."',
+                    portrait: null,
+                    conditionalOnly: 'alignedWatchdog'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your testimony prep makes the argument sharper. The key points are already written.',
+                    portrait: null,
+                    conditionalOnly: 'preparedTestimony'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition circulates it. Every office gets a copy before breakfast.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She reads the final version at 3 AM.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'This is clean. Let them try to argue with their own data.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_final_prep'
+        },
+
+        act2_ignore: {
+            id: 'act2_ignore',
+            ...LOCATIONS.officeOneDayBefore,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You stay focused. Don\'t let them set the agenda.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Coalition partners issue uncoordinated responses. Three different rebuttals, none of them sharp enough.',
+                    portrait: null,
+                    conditionalOnly: '!coalitionAligned'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition stays disciplined. No response. Let the framework speak for itself—thirty pages of nothing.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'MindScale\'s framework is the story on three news sites. We\'re not in it.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'act2_final_prep'
+        },
+
+        act2_final_prep: {
+            id: 'act2_final_prep',
+            ...LOCATIONS.officeOneDayBefore,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Midnight before markup. Your office looks like a war room.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    textFn: (flags) => {
+                        const pieces = [];
+                        if (flags.coalitionAligned) pieces.push('a unified coalition');
+                        if (flags.sharedWithPriya) pieces.push('Representative Chen\'s vote');
+                        if (flags.trustedElena) pieces.push('Elena\'s intel');
+                        if (flags.preparedTestimony) pieces.push('testimony that lands');
+                        if (flags.confrontedMindScale) pieces.push('a fact-check on every desk');
+                        if (flags.calledCommitteeMembers) pieces.push('a maybe from Torres');
+                        if (pieces.length === 0) return 'You don\'t have much. But you have the work.';
+                        return `You have ${pieces.join(', ')}. It might be enough.`;
+                    },
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Whatever happens tomorrow, we did the work.',
+                    portrait: null
                 }
             ],
             nextScene: 'elena_check_router'
@@ -1777,11 +2201,12 @@ const STORY = {
                 }
             ],
             setFlags: { elenaBurned: true },
-            nextScene: 'markup_hearing'
+            nextScene: 'markup_hearing_open'
         },
 
-        markup_hearing: {
-            id: 'markup_hearing',
+        // === INTERACTIVE MARKUP HEARING ===
+        markup_hearing_open: {
+            id: 'markup_hearing_open',
             ...LOCATIONS.capitol,
             dialogue: [
                 {
@@ -1835,8 +2260,126 @@ const STORY = {
                     portrait: null
                 },
                 {
+                    speaker: 'Chairman',
+                    text: 'The chair will now open a brief public comment period. Three minutes.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'markup_hearing_comment_choice'
+        },
+
+        markup_hearing_comment_choice: {
+            id: 'markup_hearing_comment_choice',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Sarah',
+                    text: 'She leans over.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Three minutes. That\'s it.',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'All three minutes on Amendment 7. One shot, one target.',
+                    setFlags: { focusedAmendment7: true },
+                    nextDialogue: 'comment_focused'
+                },
+                {
+                    text: 'Connect the dots across all five amendments. Show the committee this is a coordinated strategy, not five separate policy questions.',
+                    nextDialogue: 'comment_spread'
+                }
+            ]
+        },
+
+        comment_focused: {
+            id: 'comment_focused',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'You',
+                    text: 'Mr. Chairman, Amendment 7 replaces mandatory safety testing with voluntary self-assessment. That is the fight that matters today.',
+                    portrait: null
+                },
+                {
                     speaker: 'Narrator',
-                    text: 'The ranking member asks for a point of order. Procedural debate. A five-minute recess becomes twenty.',
+                    text: 'You reference the Titan 4 deployment. A patient in the ICU. No testing required. No waiting period.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You cite the timeline discrepancy. The compliance deadline that doesn\'t match the implementation schedule. Deliberate, not accidental.',
+                    portrait: null,
+                    conditionalOnly: 'foundEvidence'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your testimony is polished. Hours of drafting show. Every word lands.',
+                    portrait: null,
+                    conditionalOnly: 'preparedTestimony'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition in the gallery is with you. Coordinated. Silent support from every row.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The room is quiet when you finish. Three minutes, one target.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'markup_hearing_recess_choice'
+        },
+
+        comment_spread: {
+            id: 'comment_spread',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'You',
+                    text: 'Mr. Chairman, the pattern across Amendments 3 through 7 represents a systematic weakening of the bill\'s core protections...',
+                    portrait: null
+                },
+                {
+                    speaker: 'Peters',
+                    text: 'Point of order, Mr. Chairman. Amendments 3 through 6 have already been voted on.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Chairman',
+                    text: 'Sustained. Please confine your remarks to Amendment 7.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You pivot. But the clock is running. You rush through the key points. Amendment 7\'s testing provisions get forty-five seconds.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Elena texts: "You had one shot and you spread it across five targets."',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                }
+            ],
+            nextScene: 'markup_hearing_recess_choice'
+        },
+
+        markup_hearing_recess_choice: {
+            id: 'markup_hearing_recess_choice',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The ranking member asks for a point of order. Procedural debate. The chairman calls a fifteen-minute recess.',
                     portrait: null
                 },
                 {
@@ -1850,10 +2393,96 @@ const STORY = {
                     text: '"Representative Chen\'s in. She\'ll vote no on 7. You owe me."',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
+                }
+            ],
+            choices: [
+                {
+                    text: 'Find Torres by the coffee. You get two minutes and Peters\'s people will see you.',
+                    setFlags: { calledRecess: true },
+                    nextDialogue: 'recess_lobby'
+                },
+                {
+                    text: 'Stay in the gallery. Pass notes to your allies and let them work the room.',
+                    setFlags: { passedIntelToAllies: true },
+                    nextDialogue: 'recess_notes'
+                }
+            ]
+        },
+
+        recess_lobby: {
+            id: 'recess_lobby',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You find Representative Torres by the coffee.',
+                    portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The coalition\'s joint statement is on every desk. Twelve organizations, one message: kill Amendment 7.',
+                    text: 'The Titan 4 argument lands. She remembers the story. Her constituents are asking questions.',
+                    portrait: null,
+                    conditionalOnly: 'seizedMoment'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'She remembers your call. Her chief of staff briefed her.',
+                    portrait: null,
+                    conditionalOnly: 'calledCommitteeMembers'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You mention the timeline discrepancy. She frowns. Asks for the page number.',
+                    portrait: null,
+                    conditionalOnly: 'foundEvidence'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Torres takes a sip. Doesn\'t commit. But she\'s listening. That\'s something.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'markup_hearing_vote'
+        },
+
+        recess_notes: {
+            id: 'recess_notes',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'You stay in the gallery. Pass notes to coalition allies.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition coordinates an inbox-flooding campaign during recess. Every committee member\'s office gets fifty emails in fifteen minutes.',
+                    portrait: null,
+                    conditionalOnly: 'coalitionAligned'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Elena catches your eye from the industry section. She shakes her head slightly. Too obvious.',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Without a unified coalition, the notes scatter. Different asks, different priorities. The usual.',
+                    portrait: null,
+                    conditionalOnly: '!coalitionAligned'
+                }
+            ],
+            nextScene: 'markup_hearing_vote'
+        },
+
+        markup_hearing_vote: {
+            id: 'markup_hearing_vote',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition\'s joint statement is on every desk. Kill Amendment 7.',
                     portrait: null,
                     conditionalOnly: 'coalitionAligned'
                 },
@@ -1871,18 +2500,27 @@ const STORY = {
                 {
                     speaker: 'Chairman',
                     textFn: (flags) => {
-                        const { yesVotes, noVotes } = getAmendment7Result(flags);
-                        return `The amendment passes. ${yesVotes}-${noVotes}.`;
+                        const { yesVotes, noVotes, passed } = getAmendment7Result(flags);
+                        return passed
+                            ? `The amendment passes. ${yesVotes}-${noVotes}.`
+                            : `The amendment fails. ${noVotes}-${yesVotes}.`;
                     },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
                     textFn: (flags) => {
-                        const { margin, marginWord } = getAmendment7Result(flags);
+                        const { margin, marginWord, passed } = getAmendment7Result(flags);
+                        if (!passed) {
+                            const absMarginWord = marginWord;
+                            const base = Math.abs(margin) === 1 ? 'By a single vote.' : `By ${absMarginWord} votes.`;
+                            return flags.sharedWithPriya
+                                ? `${base} Representative Chen's no made the difference.`
+                                : base;
+                        }
                         const base = `${marginWord} vote${margin > 1 ? 's' : ''}.`;
                         return flags.sharedWithPriya
-                            ? `${base} Representative Chen made a difference, but not enough.`
+                            ? `${base} Representative Chen voted no, but it wasn't enough to stop it.`
                             : base;
                     },
                     portrait: null
@@ -1894,7 +2532,122 @@ const STORY = {
                     conditionalOnly: 'sharedWithPriya'
                 }
             ],
-            nextScene: 'climax'
+            nextScene: 'miracle_check_router'
+        },
+
+        miracle_check_router: {
+            id: 'miracle_check_router',
+            isRouter: true,
+            routerId: 'miracle_check'
+        },
+
+        // Miracle path: Amendment 7 defeated via reconsideration
+        markup_reconsideration: {
+            id: 'markup_reconsideration',
+            ...LOCATIONS.capitol,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'Then something happens that nobody expected.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Representative Torres rises.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '"Mr. Chairman, I move to reconsider Amendment 7."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The gallery stirs. Peters looks up from his phone.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Elena texts: "Two more wavering. Chen is voting no. Your coalition pushed Torres over the edge."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Priya texts: "Torres is making the motion. Chen is with her. That\'s two we didn\'t have ten minutes ago."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The coalition statement is on every desk. Your focused testimony echoes in the room. The Titan 4 story is on every phone.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Chairman',
+                    text: 'The motion to reconsider is in order. All in favor of reconsidering Amendment 7?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The revote. It takes forty-five seconds that feel like forty-five minutes.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Chairman',
+                    text: 'The motion carries. Amendment 7 fails on reconsideration.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Silence. Then—noise. Gallery erupts. Peters is already on his phone.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You look at Elena. She\'s looking at her lap. Hiding a smile.',
+                    portrait: null
+                }
+            ],
+            setFlags: { miracleVictory: true },
+            nextScene: 'climax_miracle'
+        },
+
+        // Miracle climax
+        climax_miracle: {
+            id: 'climax_miracle',
+            ...LOCATIONS.mall,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Capitol dome glows against the darkness.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 7 is dead. For the first time, the Frontier AI Safety Act passes committee with real teeth.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Mandatory testing. Quarterly public reports. Independent verification.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: '"Did that just happen?"',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'That just happened.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The night air is cold. Neither of you says anything for a while. You don\'t need to.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'ending_check'
         },
 
         climax: {
@@ -2018,7 +2771,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Chen moved to reconsider Amendment 7 in committee. Got a couple votes to flip. It failed on reconsideration, 10-11."',
+                    text: '"Chen moved to reconsider Amendment 7 in committee. Got a few votes to flip. It failed on reconsideration, 12-13."',
                     portrait: null
                 },
                 {
@@ -2680,6 +3433,80 @@ const STORY = {
             ],
             isEnding: true,
             endingType: 'The Almost'
+        },
+
+        // ENDING: Miracle - Amendment 7 defeated via reconsideration
+        ending_miracle: {
+            id: 'ending_miracle',
+            ...LOCATIONS.officeSixMonths,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'The Frontier AI Safety Act passes the House. 241 to 194.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Mandatory testing. Quarterly public reports. Independent verification. It\'s not everything. But for the first time, they have to actually do something.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She drops the first compliance report on your desk.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'MindScale is furious. Prometheus just announced a fifty million dollar SuperPAC. Three senators are already trying to weaken it.',
+                    portrait: null
+                },
+                {
+                    speaker: 'You',
+                    text: 'So, the usual.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Your phone buzzes. Elena.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Elena',
+                    text: '"They\'ll block it in the Senate. You know that, right?"',
+                    portrait: null,
+                    conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Another buzz. Priya.',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"Then we\'ll be ready."',
+                    portrait: null,
+                    conditionalOnly: 'sharedWithPriya'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Same time tomorrow?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'The victory is real. The fight continues. That\'s how it works.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: '— THE END —',
+                    portrait: null
+                }
+            ],
+            isEnding: true,
+            endingType: 'The Breakthrough'
         }
     }
 };
