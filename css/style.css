@@ -144,7 +144,7 @@ body {
 
 /* Background Gradients for Different Locations */
 
-/* TAPP Office - Fluorescent purgatory, institutional beige */
+/* AAPC Office - Fluorescent purgatory, institutional beige */
 .bg-office {
     background: linear-gradient(180deg,
         #3a3d30 0%,
@@ -265,7 +265,7 @@ body {
     );
 }
 
-/* Rayburn Building - Power blue, mahogany, impressive machinery */
+/* Ashburn Building - Power blue, mahogany, impressive machinery */
 .bg-capitol {
     background: linear-gradient(180deg,
         #1a2a3a 0%,

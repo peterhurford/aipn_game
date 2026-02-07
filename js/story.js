@@ -2,21 +2,21 @@
 
 // Location registry - centralized location/background definitions
 const LOCATIONS = {
-    office: { location: 'TAPP Office', background: 'bg-office' },
-    officeCoalition: { location: 'TAPP Office - Coalition Call', background: 'bg-coalition' },
-    officeLate: { location: 'TAPP Office - Late Night', background: 'bg-office' },
-    officeNight: { location: 'TAPP Office - 11:47 PM', background: 'bg-office' },
-    officeMidnight: { location: 'TAPP Office - 12:14 AM', background: 'bg-office' },
-    officeInbox: { location: 'TAPP Office - 4:47 PM', background: 'bg-office' },
-    officeNextMorning: { location: 'TAPP Office - The Next Morning', background: 'bg-office' },
-    officeSixMonths: { location: 'TAPP Office - Six Months Later', background: 'bg-office' },
-    officeThreeMonths: { location: 'TAPP Office - Three Months Later', background: 'bg-office' },
-    officeNextCongress: { location: 'TAPP Office - Next Congress', background: 'bg-office' },
+    office: { location: 'AAPC Office', background: 'bg-office' },
+    officeCoalition: { location: 'AAPC Office - Coalition Call', background: 'bg-coalition' },
+    officeLate: { location: 'AAPC Office - Late Night', background: 'bg-office' },
+    officeNight: { location: 'AAPC Office - 11:47 PM', background: 'bg-office' },
+    officeMidnight: { location: 'AAPC Office - 12:14 AM', background: 'bg-office' },
+    officeInbox: { location: 'AAPC Office - 4:47 PM', background: 'bg-office' },
+    officeNextMorning: { location: 'AAPC Office - The Next Morning', background: 'bg-office' },
+    officeSixMonths: { location: 'AAPC Office - Six Months Later', background: 'bg-office' },
+    officeThreeMonths: { location: 'AAPC Office - Three Months Later', background: 'bg-office' },
+    officeNextCongress: { location: 'AAPC Office - Next Congress', background: 'bg-office' },
     bar: { location: 'The Filibuster Bar', background: 'bg-bar' },
     conference: { location: 'Conference Room B-7', background: 'bg-conference' },
     thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
     mall: { location: 'National Mall at Night', background: 'bg-mall' },
-    capitol: { location: 'Rayburn Building - Committee Room', background: 'bg-capitol' }
+    capitol: { location: 'Ashburn Building - Committee Room', background: 'bg-capitol' }
 };
 
 // Speaker style configuration - maps speakers to CSS classes
@@ -207,7 +207,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Three years at TAPP. Two failed bills. This is attempt number three.',
+                    text: 'Three years at the American AI Policy Center. Two failed bills. This is attempt number three.',
                     portrait: null
                 },
                 {
@@ -429,7 +429,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Amendments 3 through 6? We\'ll let those pass—makes it look like we\'re compromising. The real play is Amendment 7. That\'s where the testing requirements get gutted.',
+                    text: 'Amendments 3 through 6? We\'ll let those die—makes it look like we\'re compromising. The real play is Amendment 7. That\'s where the testing requirements get gutted.',
                     portrait: 'portrait-elena'
                 },
                 {
@@ -453,7 +453,6 @@ const STORY = {
                     portrait: 'portrait-elena'
                 }
             ],
-            setFlags: { foundEvidence: true },
             nextScene: 'stakeholder_meeting'
         },
 
@@ -528,7 +527,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. TAPP got one seat. Industry got three.',
+                    text: 'Three industry representatives, two academics, four nonprofit advocates, one congressional staffer, and a facilitator. AAPC got one seat. Industry got three.',
                     portrait: null
                 },
                 {
@@ -606,7 +605,7 @@ const STORY = {
                     portrait: null
                 }
             ],
-            setFlags: { survivedStakeholderMeeting: true },
+            setFlags: { foundEvidence: true },
             nextScene: 'staffer_approach'
         },
 
@@ -625,7 +624,6 @@ const STORY = {
                     portrait: null
                 }
             ],
-            setFlags: { survivedStakeholderMeeting: true },
             nextScene: 'staffer_approach'
         },
 
@@ -641,7 +639,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Staffer',
-                    text: 'Hey—you\'re with TAPP, right? I work for Congressman Davis on the committee.',
+                    text: 'Hey—you\'re with AAPC, right? I work for Congressman Davis on the committee.',
                     portrait: null
                 },
                 {
@@ -901,7 +899,7 @@ const STORY = {
                 },
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
-            setFlags: { coalitionAligned: true, spokeUp: true },
+            setFlags: { coalitionAligned: true },
             nextScene: 'inbox_triage'
         },
 
@@ -964,7 +962,6 @@ const STORY = {
                 },
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
-            setFlags: { spokeUp: true },
             nextScene: 'inbox_triage'
         },
 
@@ -1021,7 +1018,6 @@ const STORY = {
                 },
                 ...DIALOGUE_FRAGMENTS.priyaDiscussion
             ],
-            setFlags: { spokeUp: true },
             nextScene: 'inbox_triage'
         },
 
@@ -1068,7 +1064,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Jordan (TAPP Intern) — "Question about the stakeholder summary memo (sorry if this is dumb)" (2:15 PM)',
+                    text: 'Jordan (AAPC Intern) — "Question about the stakeholder summary memo (sorry if this is dumb)" (2:15 PM)',
                     portrait: null
                 },
                 {
@@ -1350,7 +1346,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: 'Senator Chen on the committee. She\'s a maybe on everything, but she owes me a favor from the 2019 privacy bill.',
+                    text: 'Representative Chen on the committee. She\'s a maybe on everything, but she owes me a favor from the 2019 privacy bill.',
                     portrait: 'portrait-priya'
                 },
                 {
@@ -1457,7 +1453,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Forget the coalition. TAPP. Just us. Three paragraphs. Out by midnight.',
+                    text: 'Forget the coalition. AAPC. Just us. Three paragraphs. Out by midnight.',
                     portrait: null
                 },
                 {
@@ -1492,7 +1488,7 @@ const STORY = {
                     nextDialogue: 'news_fast'
                 },
                 {
-                    text: 'We just got the coalition aligned. I\'m not blowing that up.',
+                    text: 'We need to coordinate with the coalition first.',
                     nextDialogue: 'news_slow'
                 }
             ]
@@ -1509,7 +1505,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'By 6 AM, TAPP is in the National Record, The Capitol Gazette, and three cable news segments. "AI Safety Group Warns: This Was Preventable."',
+                    text: 'By 6 AM, AAPC is in the National Record, The Capitol Gazette, and three cable news segments. "AI Safety Group Warns: This Was Preventable."',
                     portrait: null
                 },
                 {
@@ -1525,7 +1521,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'By noon, two coalition partners have put out statements distancing themselves from TAPP\'s "unilateral action." One calls it "counterproductive grandstanding."',
+                    text: 'By noon, two coalition partners have put out statements distancing themselves from AAPC\'s "unilateral action." One calls it "counterproductive grandstanding."',
                     portrait: null
                 },
                 {
@@ -1559,13 +1555,13 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Saw the statement. Senator Chen\'s office is citing it in her floor remarks."',
+                    text: '"Saw the statement. Representative Chen\'s office is citing it in her floor remarks."',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Marcus Webb\'s The Capitol Gazette story quotes TAPP twice. The background paid off.',
+                    text: 'Marcus Webb\'s The Capitol Gazette story quotes AAPC twice. The background paid off.',
                     portrait: null,
                     conditionalOnly: 'repliedJournalist'
                 }
@@ -1658,6 +1654,12 @@ const STORY = {
                     text: 'Oh—Jordan caught a discrepancy in the stakeholder memo. The compliance deadline doesn\'t match the implementation schedule. Good eye.',
                     portrait: null,
                     conditionalOnly: 'repliedIntern'
+                },
+                {
+                    speaker: 'You',
+                    text: 'That\'s the same discrepancy I flagged at the roundtable. The timeline gaps aren\'t mistakes—they\'re deliberate. Industry wants the delay.',
+                    portrait: null,
+                    conditionalOnly: 'foundEvidence'
                 },
                 {
                     speaker: 'Narrator',
@@ -1784,7 +1786,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The gallery is fuller than usual. The Titan 4 story put the Frontier AI Safety Act on the front page, and TAPP\'s name is attached to it. Reporters in the back row.',
+                    text: 'The gallery is fuller than usual. The Titan 4 story put the Frontier AI Safety Act on the front page, and AAPC\'s name is attached to it. Reporters in the back row.',
                     portrait: null,
                     conditionalOnly: 'seizedMoment'
                 },
@@ -1801,13 +1803,13 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You watch Elena\'s prediction play out. Amendments 3, 4, 5, 6—industry barely fights for them. Token opposition. They pass easily.',
+                    text: 'You watch Elena\'s prediction play out. Amendments 3, 4, 5, 6—industry barely defends them. Token effort. They go down easily.',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Amendments 3 through 6 pass with little debate. Minor provisions. Nobody seems to care much.',
+                    text: 'Amendments 3 through 6 are voted down with little debate. Minor provisions. Nobody seems to care much.',
                     portrait: null,
                     conditionalOnly: '!trustedElena'
                 },
@@ -1845,7 +1847,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Senator Chen\'s in. She\'ll vote no on 7. You owe me."',
+                    text: '"Representative Chen\'s in. She\'ll vote no on 7. You owe me."',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 },
@@ -1880,14 +1882,14 @@ const STORY = {
                         const { margin, marginWord } = getAmendment7Result(flags);
                         const base = `${marginWord} vote${margin > 1 ? 's' : ''}.`;
                         return flags.sharedWithPriya
-                            ? `${base} Senator Chen made a difference, but not enough.`
+                            ? `${base} Representative Chen made a difference, but not enough.`
                             : base;
                     },
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You look at Senator Chen. She catches your eye. Nods.',
+                    text: 'You look at Representative Chen. She catches your eye. Nods.',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 }
@@ -1918,6 +1920,12 @@ const STORY = {
                     speaker: 'Sarah',
                     text: '"Floor vote next month. Leadership wants to know our position."',
                     portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Priya showed you how this town really works. The favors, the leverage, the phone calls that matter more than any testimony. You know where the levers are now.',
+                    portrait: null,
+                    conditionalOnly: 'knowsTheTruth'
                 },
                 {
                     speaker: 'Narrator',
@@ -2010,7 +2018,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Senator Chen came through. Amendment 7 failed on the floor. 10-11."',
+                    text: '"Chen moved to reconsider Amendment 7 in committee. Got a couple votes to flip. It failed on reconsideration, 10-11."',
                     portrait: null
                 },
                 {
@@ -2020,7 +2028,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"We killed Amendment 7. But..."',
+                    text: '"We killed Amendment 7 in committee. But..."',
                     portrait: null
                 },
                 {
@@ -2054,18 +2062,18 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: '"You\'ve got Senator Chen\'s vote. And I know what they\'ll accept. There\'s a deal here if you want it."',
+                    text: '"You\'ve got Representative Chen\'s vote. And I know what they\'ll accept. There\'s a deal here if you want it."',
                     portrait: null
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Elena says you can trade. Amendments 3-6 for a less gutted Amendment 7. Is that real?"',
+                    text: '"Elena says there\'s a deal. Let industry reintroduce Amendments 3-6 in exchange for real concessions on 7. Is that real?"',
                     portrait: null
                 },
                 {
                     speaker: 'Elena',
-                    text: '"It\'s real. They keep their \'flexible frameworks\' but we get actual reporting requirements. Quarterly instead of annual. Public instead of confidential."',
-                    conditionalText: { coalitionAligned: '"It\'s real. They keep their \'flexible frameworks\' but we get actual reporting requirements. Quarterly instead of annual. Public instead of confidential. And your coalition made enough noise that they\'ll accept independent verification."' },
+                    text: '"It\'s real. They get Amendments 3-6 back—their \'flexible frameworks\'—but we get actual reporting requirements in 7. Quarterly instead of annual. Public instead of confidential."',
+                    conditionalText: { coalitionAligned: '"It\'s real. They get Amendments 3-6 back—their \'flexible frameworks\'—but we get actual reporting requirements in 7. Quarterly instead of annual. Public instead of confidential. And your coalition made enough noise that they\'ll accept independent verification."' },
                     portrait: null
                 },
                 {
@@ -2105,7 +2113,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: '"You\'ve got Senator Chen. And I know what they\'d accept. There\'s a deal here—in theory."',
+                    text: '"You\'ve got Representative Chen. And I know what they\'d accept. There\'s a deal here—in theory."',
                     portrait: null
                 },
                 {
@@ -2351,7 +2359,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'We killed Amendment 7. Senator Chen came through.',
+                    text: 'We killed Amendment 7. Representative Chen came through.',
                     portrait: null
                 },
                 {
@@ -2458,8 +2466,8 @@ const STORY = {
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Senator Chen\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
-                    conditionalText: { coalitionAligned: '"Senator Chen\'s using the reports in oversight hearings. And the coalition is filing FOIA requests every quarter. It\'s not much, but it\'s leverage."' },
+                    text: '"Representative Chen\'s using the reports in oversight hearings. It\'s not much, but it\'s leverage."',
+                    conditionalText: { coalitionAligned: '"Representative Chen\'s using the reports in oversight hearings. And the coalition is filing FOIA requests every quarter. It\'s not much, but it\'s leverage."' },
                     portrait: null
                 },
                 {
@@ -2521,7 +2529,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The full industry version. Every amendment intact.',
+                    text: 'Amendment 7 intact. The full industry version.',
                     portrait: null
                 },
                 {
@@ -2606,12 +2614,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The full industry version. Every amendment intact.',
+                    text: 'Amendment 7 intact. The full industry version.',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'We had Elena. We had Priya. We had Senator Chen\'s vote. What happened?',
+                    text: 'We had Elena. We had Priya. We had Representative Chen\'s vote. What happened?',
                     portrait: null
                 },
                 {

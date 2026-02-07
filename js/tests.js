@@ -44,6 +44,8 @@ const TestRunner = {
         this.testSceneStructure();
         this.testCharacterPayoff();
         this.testInboxTriage();
+        this.testSpokeUpFlag();
+        this.testFlagCoverage();
         this.testEndingPaths();
 
         console.log(`\n${'='.repeat(50)}`);
@@ -70,7 +72,7 @@ const TestRunner = {
         }
 
         // Specific location values
-        this.assertEqual(LOCATIONS.office.location, 'TAPP Office', 'LOCATIONS.office.location correct');
+        this.assertEqual(LOCATIONS.office.location, 'AAPC Office', 'LOCATIONS.office.location correct');
         this.assertEqual(LOCATIONS.office.background, 'bg-office', 'LOCATIONS.office.background correct');
         this.assertEqual(LOCATIONS.bar.location, 'The Filibuster Bar', 'LOCATIONS.bar.location correct');
         this.assertEqual(LOCATIONS.bar.background, 'bg-bar', 'LOCATIONS.bar.background correct');
@@ -469,7 +471,7 @@ const TestRunner = {
             'Markup shows Elena\'s intel paying off (conditionally)'
         );
 
-        // PRIYA: Markup should show her votes paying off (Senator Chen)
+        // PRIYA: Markup should show her votes paying off (Representative Chen)
         const priyaLine = markup.dialogue.find(d => d.speaker === 'Priya' && d.conditionalOnly === 'sharedWithPriya');
         this.assert(
             priyaLine !== undefined,
@@ -515,13 +517,13 @@ const TestRunner = {
         );
         this.assertEqual(
             marginLine.textFn({ seizedMoment: false, sharedWithPriya: true }),
-            'Two votes. Senator Chen made a difference, but not enough.',
-            'Priya margin includes Senator Chen commentary'
+            'Two votes. Representative Chen made a difference, but not enough.',
+            'Priya margin includes Representative Chen commentary'
         );
         this.assertEqual(
             marginLine.textFn({ seizedMoment: true, sharedWithPriya: true }),
-            'One vote. Senator Chen made a difference, but not enough.',
-            'Both flags margin is "One vote." with Senator Chen'
+            'One vote. Representative Chen made a difference, but not enough.',
+            'Both flags margin is "One vote." with Representative Chen'
         );
 
         // NEWS: seizedMoment is set by news_fast (gates best ending)
@@ -691,7 +693,104 @@ const TestRunner = {
         );
     },
 
-    // Test 9: Complete Ending Paths
+    // Test 9: spokeUp Flag Logic
+    testSpokeUpFlag() {
+        console.log('\n--- spokeUp Flag Tests ---');
+
+        // spokeUp should only be set in stakeholder_speak
+        const stakeholderSpeak = STORY.scenes.stakeholder_speak;
+        this.assert(
+            stakeholderSpeak.setFlags && stakeholderSpeak.setFlags.spokeUp === true,
+            'stakeholder_speak sets spokeUp flag'
+        );
+
+        // Coalition scenes should NOT set spokeUp
+        const coalitionAligned = STORY.scenes.coalition_focus_aligned;
+        this.assert(
+            !coalitionAligned.setFlags || !coalitionAligned.setFlags.spokeUp,
+            'coalition_focus_aligned does NOT set spokeUp'
+        );
+
+        const coalitionScattered = STORY.scenes.coalition_focus_scattered;
+        this.assert(
+            !coalitionScattered || !coalitionScattered.setFlags || !coalitionScattered.setFlags.spokeUp,
+            'coalition_focus_scattered does NOT set spokeUp'
+        );
+
+        const coalitionBroad = STORY.scenes.coalition_broad;
+        this.assert(
+            !coalitionBroad || !coalitionBroad.setFlags || !coalitionBroad.setFlags.spokeUp,
+            'coalition_broad does NOT set spokeUp'
+        );
+
+        // stakeholder_silent should NOT set spokeUp
+        const stakeholderSilent = STORY.scenes.stakeholder_silent;
+        this.assert(
+            !stakeholderSilent.setFlags || !stakeholderSilent.setFlags.spokeUp,
+            'stakeholder_silent does NOT set spokeUp'
+        );
+
+        // spokeUp should be used in ending_status_quo conditional dialogue
+        const statusQuo = STORY.scenes.ending_status_quo;
+        const spokeUpLine = statusQuo.dialogue.find(d => d.conditionalOnly === 'spokeUp');
+        this.assert(
+            spokeUpLine !== undefined,
+            'ending_status_quo has dialogue conditional on spokeUp'
+        );
+    },
+
+    // Test 10: Flag Coverage (no dead flags)
+    testFlagCoverage() {
+        console.log('\n--- Flag Coverage Tests ---');
+
+        // foundEvidence should be set in stakeholder_speak (not elena_trusted)
+        const stakeholderSpeak = STORY.scenes.stakeholder_speak;
+        this.assert(
+            stakeholderSpeak.setFlags && stakeholderSpeak.setFlags.foundEvidence === true,
+            'foundEvidence is set in stakeholder_speak'
+        );
+
+        const elenaTrusted = STORY.scenes.elena_trusted;
+        this.assert(
+            !elenaTrusted.setFlags || !elenaTrusted.setFlags.foundEvidence,
+            'foundEvidence is NOT set in elena_trusted (moved to stakeholder)'
+        );
+
+        // foundEvidence should be used in markup_prep conditional dialogue
+        const markupPrep = STORY.scenes.markup_prep;
+        const evidenceLine = markupPrep.dialogue.find(d => d.conditionalOnly === 'foundEvidence');
+        this.assert(
+            evidenceLine !== undefined,
+            'foundEvidence is used in markup_prep conditional dialogue'
+        );
+
+        // knowsTheTruth should be set in priya_ally
+        const priyaAlly = STORY.scenes.priya_ally;
+        this.assert(
+            priyaAlly.setFlags && priyaAlly.setFlags.knowsTheTruth === true,
+            'knowsTheTruth is set in priya_ally'
+        );
+
+        // knowsTheTruth should be used in climax conditional dialogue
+        const climax = STORY.scenes.climax;
+        const truthLine = climax.dialogue.find(d => d.conditionalOnly === 'knowsTheTruth');
+        this.assert(
+            truthLine !== undefined,
+            'knowsTheTruth is used in climax conditional dialogue'
+        );
+
+        // survivedStakeholderMeeting should NOT exist anywhere
+        const allScenes = Object.values(STORY.scenes);
+        const hasSurvived = allScenes.some(s =>
+            s.setFlags && s.setFlags.survivedStakeholderMeeting !== undefined
+        );
+        this.assert(
+            !hasSurvived,
+            'survivedStakeholderMeeting flag is not set by any scene (removed)'
+        );
+    },
+
+    // Test 11: Complete Ending Paths
     testEndingPaths() {
         console.log('\n--- Ending Path Tests ---');
 
