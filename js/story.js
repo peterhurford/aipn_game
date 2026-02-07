@@ -8,7 +8,7 @@ const LOCATIONS = {
     officeNight: { location: 'AAPC Office - 11:47 PM', background: 'bg-office' },
     officeMidnight: { location: 'AAPC Office - 12:14 AM', background: 'bg-office' },
     officeInbox: { location: 'AAPC Office - 4:47 PM', background: 'bg-office' },
-    officeNextMorning: { location: 'AAPC Office - The Next Morning', background: 'bg-office' },
+    officeNextMorning: { location: 'AAPC Office - Early Morning', background: 'bg-office' },
     officeSixMonths: { location: 'AAPC Office - Six Months Later', background: 'bg-office' },
     officeThreeMonths: { location: 'AAPC Office - Three Months Later', background: 'bg-office' },
     officeNextCongress: { location: 'AAPC Office - Next Congress', background: 'bg-office' },
@@ -17,8 +17,8 @@ const LOCATIONS = {
     thinktank: { location: "Priya's Office", background: 'bg-thinktank' },
     mall: { location: 'National Mall at Night', background: 'bg-mall' },
     capitol: { location: 'Ashburn Building - Committee Room', background: 'bg-capitol' },
-    officeThreeDays: { location: 'AAPC Office - Three Days Before Markup', background: 'bg-office' },
-    officeOneDayBefore: { location: 'AAPC Office - One Day Before Markup', background: 'bg-office' }
+    officeThreeDays: { location: 'AAPC Office - Afternoon', background: 'bg-office' },
+    officeOneDayBefore: { location: 'AAPC Office - Evening', background: 'bg-office' }
 };
 
 // Speaker style configuration - maps speakers to CSS classes
@@ -69,10 +69,11 @@ function getAmendment7Result(flags) {
     if (flags.calledCommitteeMembers && flags.seizedMoment) swings++;  // phones work with pressure
     // Note: confrontedMindScale affects narrative but doesn't directly swing votes
 
-    // 25-member committee. Industry starts with 18 yes votes (strong majority).
+    // 25-member committee. Industry starts with 17 yes votes.
     // Each swing flips one yes voter to no.
-    const yesVotes = 18 - swings;
-    const noVotes = 7 + swings;
+    // At 5 swings (miracle): 12-13, amendment fails outright.
+    const yesVotes = 17 - swings;
+    const noVotes = 8 + swings;
     const margin = yesVotes - noVotes;
     const passed = margin > 0;
     const NUMBER_WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven' };
@@ -84,12 +85,14 @@ const ROUTING_RULES = {
     coalition_outcome: {
         rules: [
             {
-                // Promises conflict: leading with Diane's data breaks promises to Amara (broad statement) and Kai (lead signatory)
                 condition: (flags) => {
                     let aligned = 0;
-                    if (flags.alignedCivilRights && !(flags.promisedBroadStatement && flags.alignedWatchdog)) aligned++;
-                    if (flags.alignedDisability && !(flags.promisedLeadSignatory && flags.alignedWatchdog)) aligned++;
-                    if (flags.alignedWatchdog) aligned++;
+                    // Amara stays if aligned AND (no lead promise OR got the lead)
+                    if (flags.alignedCivilRights && (!flags.promisedAmaraLead || flags.choseAmaraLead)) aligned++;
+                    // Kai stays if aligned (signatory doesn't conflict with lead choice)
+                    if (flags.alignedDisability) aligned++;
+                    // Diane stays if aligned AND (no lead promise OR got the lead)
+                    if (flags.alignedWatchdog && (!flags.promisedDianeLead || flags.choseDianeLead)) aligned++;
                     return aligned >= 3;
                 },
                 target: 'coalition_strong'
@@ -97,9 +100,9 @@ const ROUTING_RULES = {
             {
                 condition: (flags) => {
                     let aligned = 0;
-                    if (flags.alignedCivilRights && !(flags.promisedBroadStatement && flags.alignedWatchdog)) aligned++;
-                    if (flags.alignedDisability && !(flags.promisedLeadSignatory && flags.alignedWatchdog)) aligned++;
-                    if (flags.alignedWatchdog) aligned++;
+                    if (flags.alignedCivilRights && (!flags.promisedAmaraLead || flags.choseAmaraLead)) aligned++;
+                    if (flags.alignedDisability) aligned++;
+                    if (flags.alignedWatchdog && (!flags.promisedDianeLead || flags.choseDianeLead)) aligned++;
                     return aligned >= 2;
                 },
                 target: 'coalition_moderate'
@@ -121,17 +124,13 @@ const ROUTING_RULES = {
     miracle_check: {
         rules: [
             {
-                // Narrow pass + all miracle conditions → Torres moves to reconsider
-                // Max swings = 5, so amendment always passes (margin 1 at best)
-                // Miracle is the ONLY way to defeat Amendment 7
+                // Amendment fails outright (5 swings → margin -1)
+                // Requires everything: Elena intel, Priya's vote, public pressure, coalition, focused testimony
                 condition: (flags) => {
-                    const { margin } = getAmendment7Result(flags);
-                    return margin <= 2 &&
-                           flags.trustedElena && !flags.elenaBurned &&
-                           flags.sharedWithPriya && flags.seizedMoment &&
-                           flags.coalitionAligned && flags.focusedAmendment7;
+                    const { passed } = getAmendment7Result(flags);
+                    return !passed;
                 },
-                target: 'markup_reconsideration'
+                target: 'climax_miracle'
             }
         ],
         default: 'climax'
@@ -165,7 +164,7 @@ const ROUTING_RULES = {
     ending_check: {
         rules: [
             {
-                // Miracle victory = Amendment 7 defeated via reconsideration
+                // Miracle victory = Amendment 7 defeated outright
                 condition: (flags) => flags.miracleVictory,
                 target: 'ending_miracle'
             },
@@ -235,8 +234,11 @@ const STORY = {
         alignedCivilRights: false,
         alignedDisability: false,
         alignedWatchdog: false,
-        promisedBroadStatement: false,
+        promisedAmaraLead: false,
         promisedLeadSignatory: false,
+        promisedDianeLead: false,
+        choseAmaraLead: false,
+        choseDianeLead: false,
         // Time pressure
         preparedTestimony: false,
         // Second act
@@ -255,6 +257,7 @@ const STORY = {
     scenes: {
         intro: {
             id: 'intro',
+            day: 1,
             ...LOCATIONS.office,
             dialogue: [
                 {
@@ -700,6 +703,12 @@ const STORY = {
                     portrait: null
                 },
                 {
+                    speaker: 'Staffer',
+                    text: 'That point you made in there about the timeline—that was sharp.',
+                    portrait: null,
+                    conditionalOnly: 'spokeUp'
+                },
+                {
                     speaker: 'You',
                     text: 'That\'s right.',
                     portrait: null
@@ -845,7 +854,19 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Elena\'s intel about Amendment 7 is your card. If you trusted her.',
+                    text: 'Amendment 7 is the one that scares me. The others cut specific provisions. Amendment 7 replaces mandatory compliance with voluntary frameworks. Companies police themselves.',
+                    portrait: null,
+                    conditionalOnly: '!trustedElena'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'If that passes, every other protection in the bill is a suggestion.',
+                    portrait: null,
+                    conditionalOnly: '!trustedElena'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Elena\'s intel about Amendment 7 is your card. The other amendments are a sideshow—industry won\'t fight them. Seven is the real play.',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
                 },
@@ -871,25 +892,85 @@ const STORY = {
                     speaker: 'Amara',
                     text: 'Why should I put my resources behind Amendment 7 when my issue is Amendment 4?',
                     portrait: null
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'If you want my network, bias audits lead the statement. First paragraph. First sentence. That\'s my price.',
+                    portrait: null
                 }
             ],
             choices: [
                 {
                     text: 'Amendment 4 is already dead—I have intel. Focus on 7.',
                     setFlags: { alignedCivilRights: true },
-                    nextDialogue: 'coalition_negotiate_kai',
+                    nextDialogue: 'amara_response_intel',
                     conditionalOnly: 'trustedElena'
                 },
                 {
-                    text: 'The joint statement covers both. Amendment 4 and 7 together.',
-                    setFlags: { alignedCivilRights: true, promisedBroadStatement: true },
-                    nextDialogue: 'coalition_negotiate_kai'
+                    text: 'Bias audits lead the statement. Done.',
+                    setFlags: { alignedCivilRights: true, promisedAmaraLead: true },
+                    nextDialogue: 'amara_response_lead'
                 },
                 {
                     text: 'Amendment 7 has to be the priority. Can\'t promise more.',
-                    nextDialogue: 'coalition_negotiate_kai'
+                    nextDialogue: 'amara_response_no'
                 }
             ]
+        },
+
+        amara_response_intel: {
+            id: 'amara_response_intel',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Narrator',
+                    text: 'A long pause on the line.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'You\'re sure about that? Amendment 4 is dead?',
+                    portrait: null
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'Then there\'s no point splitting our resources. I\'m in.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_kai'
+        },
+
+        amara_response_lead: {
+            id: 'amara_response_lead',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Amara',
+                    text: 'First paragraph. First sentence. I\'ll hold you to that.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'My network is in.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_kai'
+        },
+
+        amara_response_no: {
+            id: 'amara_response_no',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Amara',
+                    text: 'Then I can\'t promise my network either. Good luck with Amendment 7.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_kai'
         },
 
         coalition_negotiate_kai: {
@@ -903,21 +984,52 @@ const STORY = {
                 },
                 {
                     speaker: 'Kai',
-                    text: 'I need visibility. My coalition needs to know they\'re part of this, not just a footnote.',
+                    text: 'But here\'s the thing—data access polls at seventy percent. Across party lines. You put disability access front and center, and the committee members who are on the fence have cover to vote no on the whole package.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Kai',
+                    text: 'Give us the lead and I can move votes for you.',
                     portrait: null
                 }
             ],
             choices: [
                 {
-                    text: 'Your coalition gets lead signatory.',
+                    text: 'Your coalition leads. Front and center.',
                     setFlags: { alignedDisability: true, promisedLeadSignatory: true },
-                    nextDialogue: 'coalition_negotiate_diane'
+                    nextDialogue: 'kai_response_yes'
                 },
                 {
                     text: 'Can\'t make promises. But winning on 7 makes everything possible.',
-                    nextDialogue: 'coalition_negotiate_diane'
+                    nextDialogue: 'kai_response_no'
                 }
             ]
+        },
+
+        kai_response_yes: {
+            id: 'kai_response_yes',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Kai',
+                    text: 'That\'s all I needed to hear. I\'ll have my people making calls by morning.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_diane'
+        },
+
+        kai_response_no: {
+            id: 'kai_response_no',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Kai',
+                    text: 'I\'ve heard "everything is possible" before. Usually from people who don\'t call back.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_negotiate_diane'
         },
 
         coalition_negotiate_diane: {
@@ -931,44 +1043,84 @@ const STORY = {
                 },
                 {
                     speaker: 'Diane',
-                    text: 'I want it front and center. Not buried in an appendix. Not a footnote. The lead evidence.',
+                    text: 'This is the strongest evidence anyone has against these amendments. I want it first. Page one, paragraph one. The lead evidence that frames everything else.',
                     portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She mutes and whispers to you.',
-                    portrait: null,
-                    isAction: true,
-                    conditionalOnly: 'promisedBroadStatement'
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'If we lead with Diane\'s data, the statement is about MindScale, not about bias audits. Amara will say we buried her issue.',
-                    portrait: null,
-                    conditionalOnly: 'promisedBroadStatement'
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'She mutes and whispers to you.',
-                    portrait: null,
-                    isAction: true,
-                    conditionalOnly: 'promisedLeadSignatory'
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'If Diane\'s data leads, Kai\'s coalition is a footnote. That\'s exactly what he said he wouldn\'t accept.',
-                    portrait: null,
-                    conditionalOnly: 'promisedLeadSignatory'
                 }
             ],
             choices: [
                 {
-                    text: 'Your data leads the testimony.',
-                    setFlags: { alignedWatchdog: true },
-                    nextDialogue: 'coalition_outcome_router'
+                    text: 'Your data leads. Page one, paragraph one.',
+                    setFlags: { alignedWatchdog: true, promisedDianeLead: true },
+                    nextDialogue: 'diane_response_yes'
                 },
                 {
                     text: 'Coalition speaks as one. Unified message, data included.',
+                    setFlags: { alignedWatchdog: true },
+                    nextDialogue: 'diane_response_no'
+                }
+            ]
+        },
+
+        diane_response_yes: {
+            id: 'diane_response_yes',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Diane',
+                    text: 'I\'ll send everything tonight. Three years of reports. Use them well.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_final_choice'
+        },
+
+        diane_response_no: {
+            id: 'diane_response_no',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Diane',
+                    text: '"Unified message." That\'s what people say when they want to bury the strongest evidence in a committee letter.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Diane',
+                    text: 'Fine. But you\'re leaving ammunition on the table.',
+                    portrait: null
+                }
+            ],
+            nextScene: 'coalition_final_choice'
+        },
+
+        coalition_final_choice: {
+            id: 'coalition_final_choice',
+            ...LOCATIONS.officeCoalition,
+            dialogue: [
+                {
+                    speaker: 'Sarah',
+                    text: 'She mutes the call.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Okay. The statement can only lead with one thing. Whatever goes first frames the entire argument. What\'s on page one?',
+                    portrait: null
+                }
+            ],
+            choices: [
+                {
+                    text: 'Bias audits. The civil rights angle frames everything.',
+                    setFlags: { choseAmaraLead: true },
+                    nextDialogue: 'coalition_outcome_router'
+                },
+                {
+                    text: 'Diane\'s compliance data. Three years of hard evidence.',
+                    setFlags: { choseDianeLead: true },
+                    nextDialogue: 'coalition_outcome_router'
+                },
+                {
+                    text: 'No one leads. Equal weight across the board.',
                     nextDialogue: 'coalition_outcome_router'
                 }
             ]
@@ -1022,10 +1174,10 @@ const STORY = {
                 {
                     speaker: 'Narrator',
                     textFn: (flags) => {
-                        const amaraBroken = flags.alignedCivilRights && flags.promisedBroadStatement && flags.alignedWatchdog;
-                        const kaiBroken = flags.alignedDisability && flags.promisedLeadSignatory && flags.alignedWatchdog;
-                        if (amaraBroken) return 'Amara hung up. You promised to keep Amendment 4 in the statement, then let Diane\'s data take the lead. But Kai and Diane are in.';
-                        if (kaiBroken) return 'Kai walked. You promised him lead signatory, then gave Diane top billing. But Amara and Diane are in.';
+                        const amaraBroken = flags.promisedAmaraLead && !flags.choseAmaraLead;
+                        const dianeBroken = flags.promisedDianeLead && !flags.choseDianeLead;
+                        if (amaraBroken && flags.alignedCivilRights) return 'Amara read the statement. MindScale data in the first paragraph. Bias audits on page three. She hung up.';
+                        if (dianeBroken && flags.alignedWatchdog) return 'Diane saw the draft. Her three years of compliance data summarized in a sidebar. She pulled everything.';
                         if (!flags.alignedCivilRights) return 'Amara\'s civil rights network isn\'t on board. But Kai and Diane are in.';
                         if (!flags.alignedDisability) return 'Kai\'s disability coalition walked. But Amara and Diane are in.';
                         return 'Diane wanted more visibility for her data. But Amara and Kai are in.';
@@ -1236,6 +1388,7 @@ const STORY = {
         // Time pressure fork - choose Priya OR testimony, can't do both
         time_pressure_choice: {
             id: 'time_pressure_choice',
+            day: 2,
             ...LOCATIONS.officeNextMorning,
             dialogue: [
                 {
@@ -1246,7 +1399,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Written testimony has to be filed with the committee forty-eight hours before markup. That deadline is tomorrow morning.',
+                    text: 'Written testimony has to be filed with the committee by noon today. Markup is tomorrow.',
                     portrait: null
                 },
                 {
@@ -1256,7 +1409,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Priya called. She\'ll see you at 5, but she\'s flying to San Francisco tomorrow. Tonight is the only window.',
+                    text: 'Priya called. She can see you this morning before her flight. She leaves for San Francisco at noon. This morning is the only window.',
                     portrait: null
                 },
                 {
@@ -1266,12 +1419,12 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'But if you spend the evening across town, the testimony goes in as Sarah\'s draft. Competent. Forgettable. The kind of thing committee members skim and set aside.',
+                    text: 'But if you spend the morning across town, the testimony goes in as Sarah\'s draft. Competent. Forgettable. The kind of thing committee members skim and set aside.',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'You can\'t do both. Not tonight.',
+                    text: 'And this afternoon is all strategy—we\'ve got two days of committee outreach to compress into one. You can\'t do both. Not today.',
                     portrait: null
                 }
             ],
@@ -1291,7 +1444,7 @@ const STORY = {
         // Testimony prep path - alternative to visiting Priya
         testimony_prep: {
             id: 'testimony_prep',
-            ...LOCATIONS.officeLate,
+            ...LOCATIONS.office,
             dialogue: [
                 {
                     speaker: 'Narrator',
@@ -1343,11 +1496,11 @@ const STORY = {
 
         aftermath_testimony: {
             id: 'aftermath_testimony',
-            ...LOCATIONS.officeLate,
+            ...LOCATIONS.office,
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'You finished the testimony. Priya\'s office is dark by now.',
+                    text: 'You finished the testimony. Priya\'s already at the airport by now.',
                     portrait: null
                 },
                 {
@@ -1582,17 +1735,17 @@ const STORY = {
 
         aftermath_priya: {
             id: 'aftermath_priya',
-            ...LOCATIONS.officeNight,
+            ...LOCATIONS.office,
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: '124 unread. Webb called twice. The testimony will have to be Sarah\'s draft.',
+                    text: '124 unread. Webb called twice. The testimony went in as Sarah\'s draft.',
                     portrait: null,
                     conditionalOnly: 'sharedWithPriya'
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The trip across town took longer than the conversation. By the time you\'re back, the evening is gone and the testimony is still a mess.',
+                    text: 'The trip across town took longer than the conversation. By the time you\'re back, the morning is gone and the testimony deadline has passed.',
                     portrait: null,
                     conditionalOnly: '!sharedWithPriya'
                 },
@@ -1815,14 +1968,14 @@ const STORY = {
             nextScene: 'time_pressure_choice'
         },
 
-        // === ACT 2: Three days before markup ===
+        // === ACT 2: Tuesday afternoon - day before markup ===
         act2_morning: {
             id: 'act2_morning',
             ...LOCATIONS.officeThreeDays,
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Three days until markup. Sarah drops another stack on your desk.',
+                    text: 'Markup is tomorrow. Sarah drops another stack on your desk.',
                     portrait: null
                 },
                 {
@@ -1866,7 +2019,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Two days of prep. Use them.',
+                    text: 'We\'ve got until midnight. Use it.',
                     portrait: null
                 }
             ],
@@ -1884,7 +2037,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'Can\'t do both well. Not in two days.',
+                    text: 'Can\'t do both well. Not in one afternoon.',
                     portrait: null
                 }
             ],
@@ -1954,7 +2107,15 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'The coalition moves as one. Amara\'s civil rights network floods inboxes. Kai\'s disability groups call offices. Diane\'s data gets cited in three op-eds.',
+                    textFn: (flags) => {
+                        if (!flags.coalitionAligned) return null;
+                        const amaraBroken = flags.promisedAmaraLead && !flags.choseAmaraLead;
+                        const dianeBroken = flags.promisedDianeLead && !flags.choseDianeLead;
+                        if (amaraBroken && dianeBroken) return 'Your phone buzzes. Amara: "Reassessing our involvement." Then Diane: "Pulled my data from the shared drive. Good luck."';
+                        if (amaraBroken) return 'Your phone buzzes. Amara\'s assistant: "She\'s reassessing her coalition commitments." You promised her page one. She got page three.';
+                        if (dianeBroken) return 'Diane\'s data is gone from the shared drive. You call her. Voicemail. You promised her the lead. She read the draft.';
+                        return 'The coalition moves as one. Amara\'s civil rights network floods inboxes. Kai\'s disability groups call offices. Diane\'s data gets cited in three op-eds.';
+                    },
                     portrait: null,
                     conditionalOnly: 'coalitionAligned'
                 },
@@ -1987,7 +2148,7 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'One day before markup. MindScale drops a 30-page "voluntary safety framework." Glossy. Endorsed by two former regulators.',
+                    text: 'That evening. MindScale drops a 30-page "voluntary safety framework." Glossy. Endorsed by two former regulators.',
                     portrait: null
                 },
                 {
@@ -2207,6 +2368,7 @@ const STORY = {
         // === INTERACTIVE MARKUP HEARING ===
         markup_hearing_open: {
             id: 'markup_hearing_open',
+            day: 3,
             ...LOCATIONS.capitol,
             dialogue: [
                 {
@@ -2228,13 +2390,92 @@ const STORY = {
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'You watch Elena\'s prediction play out. Amendments 3, 4, 5, 6—industry barely defends them. Token effort. They go down easily.',
+                    text: 'Amendment 3 goes down. Industry barely objects.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Chairman',
+                    text: 'Amendment 4. The bias audit provision.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'She stands in the gallery during public comment.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Amara',
+                    text: 'Without independent bias audits, there is no accountability. You are asking communities of color to trust the same companies that deployed discriminatory systems in hiring, lending, and policing.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 4 fails. Industry doesn\'t fight it. Amara exhales. She catches your eye—a quick nod.',
+                    portrait: null,
+                    conditionalOnly: 'alignedCivilRights'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 4 fails. Industry doesn\'t fight it. Amara sits down. She doesn\'t look at you.',
+                    portrait: null,
+                    conditionalOnly: '!alignedCivilRights'
+                },
+                {
+                    speaker: 'Chairman',
+                    text: 'Amendment 5. Data access requirements.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Kai',
+                    text: 'He rolls to the microphone during public comment.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Kai',
+                    text: 'Seventy percent of Americans support data access rights. This isn\'t partisan. Stripping this provision tells thirty million disabled Americans that their experience with these systems doesn\'t matter.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 5 fails. Industry lets it go. Kai catches your eye from across the gallery. A small nod.',
+                    portrait: null,
+                    conditionalOnly: 'alignedDisability'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 5 fails. Industry lets it go. Kai wheels past you on the way out. Doesn\'t stop.',
+                    portrait: null,
+                    conditionalOnly: '!alignedDisability'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Amendment 6. Down without debate.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You watch Elena\'s prediction play out in real time. Industry let all four die without a fight.',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Amendments 3 through 6 are voted down with little debate. Minor provisions. Nobody seems to care much.',
+                    text: 'Four amendments. Four votes. Industry didn\'t fight a single one. Their lobbyists haven\'t opened their folders.',
+                    portrait: null,
+                    conditionalOnly: '!trustedElena'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'She leans over and whispers.',
+                    portrait: null,
+                    isAction: true,
+                    conditionalOnly: '!trustedElena'
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Why aren\'t they fighting? Those were their amendments.',
                     portrait: null,
                     conditionalOnly: '!trustedElena'
                 },
@@ -2248,6 +2489,12 @@ const STORY = {
                     text: 'Here it is. The real fight. Just like Elena said.',
                     portrait: null,
                     conditionalOnly: 'trustedElena'
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Peters leans forward. The lobbyists open their folders. Suddenly you understand—everything before this was theater.',
+                    portrait: null,
+                    conditionalOnly: '!trustedElena'
                 },
                 {
                     speaker: 'Peters',
@@ -2518,7 +2765,8 @@ const STORY = {
                                 ? `${base} Representative Chen's no made the difference.`
                                 : base;
                         }
-                        const base = `${marginWord} vote${margin > 1 ? 's' : ''}.`;
+                        const capitalizedMargin = marginWord.charAt(0).toUpperCase() + marginWord.slice(1);
+                        const base = `${capitalizedMargin} vote${margin > 1 ? 's' : ''}.`;
                         return flags.sharedWithPriya
                             ? `${base} Representative Chen voted no, but it wasn't enough to stop it.`
                             : base;
@@ -2541,77 +2789,7 @@ const STORY = {
             routerId: 'miracle_check'
         },
 
-        // Miracle path: Amendment 7 defeated via reconsideration
-        markup_reconsideration: {
-            id: 'markup_reconsideration',
-            ...LOCATIONS.capitol,
-            dialogue: [
-                {
-                    speaker: 'Narrator',
-                    text: 'Then something happens that nobody expected.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Representative Torres rises.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: '"Mr. Chairman, I move to reconsider Amendment 7."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'The gallery stirs. Peters looks up from his phone.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Elena texts: "Two more wavering. Chen is voting no. Your coalition pushed Torres over the edge."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Priya texts: "Torres is making the motion. Chen is with her. That\'s two we didn\'t have ten minutes ago."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'The coalition statement is on every desk. Your focused testimony echoes in the room. The Titan 4 story is on every phone.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Chairman',
-                    text: 'The motion to reconsider is in order. All in favor of reconsidering Amendment 7?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'The revote. It takes forty-five seconds that feel like forty-five minutes.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Chairman',
-                    text: 'The motion carries. Amendment 7 fails on reconsideration.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'Silence. Then—noise. Gallery erupts. Peters is already on his phone.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You look at Elena. She\'s looking at her lap. Hiding a smile.',
-                    portrait: null
-                }
-            ],
-            setFlags: { miracleVictory: true },
-            nextScene: 'climax_miracle'
-        },
-
-        // Miracle climax
+        // Miracle climax — Amendment 7 defeated outright
         climax_miracle: {
             id: 'climax_miracle',
             ...LOCATIONS.mall,
@@ -2647,6 +2825,7 @@ const STORY = {
                     portrait: null
                 }
             ],
+            setFlags: { miracleVictory: true },
             nextScene: 'ending_check'
         },
 
@@ -2766,37 +2945,27 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'Your phone buzzes. Priya.',
+                    text: 'Amendment 7 passes. The mandatory testing requirements are gone. Replaced with voluntary compliance.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'Priya calls.',
                     portrait: null
                 },
                 {
                     speaker: 'Priya',
-                    text: '"Chen moved to reconsider Amendment 7 in committee. Got a few votes to flip. It failed on reconsideration, 12-13."',
+                    text: '"Chen voted no. Like I said she would. But it wasn\'t enough."',
                     portrait: null
                 },
                 {
                     speaker: 'You',
-                    text: 'We won?',
+                    text: 'We had one vote on a twenty-five member committee.',
                     portrait: null
                 },
                 {
                     speaker: 'Priya',
-                    text: '"We killed Amendment 7 in committee. But..."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"The conference committee just added the same language back in. Different amendment number. Same effect."',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'How?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"I don\'t know. Someone on the inside would have seen it coming. We didn\'t."',
+                    text: '"One vote is a start. But we needed intel. We needed to know where they were going to hit us. We were fighting blind."',
                     portrait: null
                 }
             ],
@@ -3107,57 +3276,38 @@ const STORY = {
             dialogue: [
                 {
                     speaker: 'Narrator',
-                    text: 'The Frontier AI Safety Act passes the House. 228 to 207.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'We killed Amendment 7. Representative Chen came through.',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'So why does the bill look exactly the same?',
-                    portrait: null
-                },
-                {
-                    speaker: 'Sarah',
-                    text: 'Conference committee. They added the language back in under a different amendment number.',
+                    text: 'Three months later. The Frontier AI Safety Act passes the House. 228 to 207. "Voluntary compliance frameworks" and all.',
                     portrait: null
                 },
                 {
                     speaker: 'Narrator',
-                    text: 'Your phone buzzes. Priya.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"I heard. I\'m sorry. I didn\'t see it coming."',
-                    portrait: null
-                },
-                {
-                    speaker: 'You',
-                    text: 'Neither did I.',
-                    portrait: null
-                },
-                {
-                    speaker: 'Priya',
-                    text: '"We needed someone on the inside. Someone who knew their playbook."',
-                    portrait: null
-                },
-                {
-                    speaker: 'Narrator',
-                    text: 'You had the votes. You just didn\'t know where to aim them.',
+                    text: 'MindScale puts out a statement thanking Congress for "a balanced approach to innovation."',
                     portrait: null
                 },
                 {
                     speaker: 'Sarah',
-                    text: 'MindScale put out a statement thanking us for "improving the legislative process."',
+                    text: 'She drops it on your desk.',
+                    portrait: null,
+                    isAction: true
+                },
+                {
+                    speaker: 'Sarah',
+                    text: 'Balanced.',
                     portrait: null
                 },
                 {
-                    speaker: 'You',
-                    text: 'Of course they did.',
+                    speaker: 'Narrator',
+                    text: 'Priya calls.',
+                    portrait: null
+                },
+                {
+                    speaker: 'Priya',
+                    text: '"We needed someone who knew their playbook. Someone on the inside."',
+                    portrait: null
+                },
+                {
+                    speaker: 'Narrator',
+                    text: 'You had the ally. You had the votes. You just didn\'t know where they\'d hit you next.',
                     portrait: null
                 },
                 {
@@ -3435,7 +3585,7 @@ const STORY = {
             endingType: 'The Almost'
         },
 
-        // ENDING: Miracle - Amendment 7 defeated via reconsideration
+        // ENDING: Miracle - Amendment 7 defeated outright
         ending_miracle: {
             id: 'ending_miracle',
             ...LOCATIONS.officeSixMonths,

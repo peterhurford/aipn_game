@@ -59,6 +59,7 @@ class Game {
 
     // Start a new game
     startNewGame() {
+        localStorage.removeItem('capitol_save');
         this.scene.initGame();
         this.showGameScreen();
         this.scene.loadScene('intro');
@@ -71,6 +72,7 @@ class Game {
             try {
                 const data = JSON.parse(savedGame);
                 this.scene.gameFlags = data.flags || {};
+                this.scene.currentDay = data.currentDay || 1;
                 this.showGameScreen();
                 this.scene.loadScene(data.currentScene || 'intro');
             } catch (e) {
@@ -85,6 +87,7 @@ class Game {
         const saveData = {
             currentScene: sceneId,
             flags: this.scene.getFlags(),
+            currentDay: this.scene.currentDay,
             timestamp: Date.now()
         };
         localStorage.setItem('capitol_save', JSON.stringify(saveData));

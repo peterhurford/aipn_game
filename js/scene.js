@@ -7,8 +7,10 @@ class SceneManager {
         this.locationIndicator = document.getElementById('location-indicator');
 
         this.currentScene = null;
+        this.currentDay = 1;
         this.gameFlags = {};
         this.transitionDuration = 500; // ms
+        this.dayNames = ['Monday', 'Tuesday', 'Wednesday'];
     }
 
     // Initialize game state
@@ -36,6 +38,17 @@ class SceneManager {
         }
 
         this.currentScene = scene;
+        this.currentSceneId = sceneId;
+
+        // Track day progression
+        if (scene.day) {
+            this.currentDay = scene.day;
+        }
+
+        // Auto-save progress
+        if (window.game) {
+            window.game.saveGame(sceneId);
+        }
 
         // Process conditional dialogue before transitioning
         const processedScene = this.processConditionalDialogue(scene);
@@ -89,9 +102,14 @@ class SceneManager {
             // Update background
             this.sceneBackground.className = scene.background || '';
 
-            // Update location
+            // Update location with day tracker
             if (scene.location) {
-                this.locationIndicator.textContent = scene.location;
+                if (scene.isEnding) {
+                    this.locationIndicator.textContent = scene.location;
+                } else {
+                    const dayName = this.dayNames[this.currentDay - 1] || 'Day ' + this.currentDay;
+                    this.locationIndicator.textContent = dayName + ' — ' + scene.location;
+                }
             }
 
             // Fade in
@@ -117,9 +135,18 @@ class SceneManager {
             Object.assign(this.gameFlags, scene.setFlags);
         }
 
-        // Check for choices
-        if (scene.choices && scene.choices.length > 0) {
-            this.dialogue.showChoices(scene.choices, (choice) => {
+        // Check for choices (filter by conditionalOnly flags)
+        const availableChoices = scene.choices ? scene.choices.filter(choice => {
+            if (choice.conditionalOnly) {
+                const isNegated = choice.conditionalOnly.startsWith('!');
+                const flagName = isNegated ? choice.conditionalOnly.slice(1) : choice.conditionalOnly;
+                const flagValue = this.gameFlags[flagName];
+                return isNegated ? !flagValue : flagValue;
+            }
+            return true;
+        }) : [];
+        if (availableChoices.length > 0) {
+            this.dialogue.showChoices(availableChoices, (choice) => {
                 this.handleChoice(choice);
             });
         } else if (scene.nextScene) {
@@ -153,6 +180,7 @@ class SceneManager {
 
     // Show ending screen
     showEndingScreen(endingType) {
+        localStorage.removeItem('capitol_save');
         setTimeout(() => {
             this.dialogue.hideDialogueBox();
             this.locationIndicator.textContent = endingType;
