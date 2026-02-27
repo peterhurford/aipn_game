@@ -411,7 +411,22 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'MindScale doesn\'t lobby against bills like yours. That\'s amateur hour. We lobby for them. A version of them. With amendments.',
+                    text: 'MindScale doesn\'t lobby against bills like yours. That\'s amateur hour.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'Killing a bill is easy. This town has a thousand veto points — one objection, one hold, one "let\'s table this for further study." Anyone can play defense.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'But you\'re trying to play offense. You need twenty people to say yes at the same time. That\'s the hard part.',
+                    portrait: 'portrait-elena'
+                },
+                {
+                    speaker: 'Elena',
+                    text: 'So we lobby for your bill. A version of it. With the right amendments.',
                     portrait: 'portrait-elena'
                 },
                 {
