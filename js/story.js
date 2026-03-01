@@ -416,7 +416,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'Killing a bill is easy. This town has a thousand veto points — one objection, one hold, one "let\'s table this for further study." Anyone can play defense.',
+                    text: 'Killing a bill is easy. This town has a thousand veto points — one objection, one hold, one "let\'s ask the department to do a study and report back next year." Anyone can play defense.',
                     portrait: 'portrait-elena'
                 },
                 {
@@ -431,7 +431,7 @@ const STORY = {
                 },
                 {
                     speaker: 'Elena',
-                    text: 'By the time it passes, it requires companies to pinky-promise they\'ll think about safety. Twice a year. In a report no one reads.',
+                    text: 'And then if it ever passes - which it won\'t - it would just require companies to pinky-promise they\'ll think about safety. Twice a year. In a report no one reads.',
                     portrait: 'portrait-elena'
                 },
                 {
